@@ -6,3 +6,10 @@
 
 # android
 *.apk
+
+bin/win64/
+
+lib/win64/
+
+demo/compiler/vc14win64/build/
+extensions/compiler/vc14win64/build/
