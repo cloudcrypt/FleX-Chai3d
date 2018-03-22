@@ -51,7 +51,7 @@
       <AdditionalIncludeDirectories>./../../../Chai3d/external/glew/include;./../../../Chai3d/external/Eigen;./../../../Chai3d/src;$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../../FleX;./../..;./../../d3d11;./../../d3d12;./../../../FleX/external/SDL2-2.0.4/include;./../../../FleX/external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
@@ -92,7 +92,7 @@
       <AdditionalIncludeDirectories>./../../../Chai3d/external/glew/include;./../../../Chai3d/external/Eigen;./../../../Chai3d/src;$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../../FleX;./../..;./../../d3d11;./../../d3d12;./../../../FleX/external/SDL2-2.0.4/include;./../../../FleX/external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>

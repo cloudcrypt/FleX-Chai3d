@@ -111,6 +111,25 @@ inline float joyAxisFilter(int value, int stick)
 SDL_GameController* g_gamecontroller = NULL;
 
 using namespace std;
+using namespace chai3d;
+
+// a haptic device handler
+cHapticDeviceHandler* g_handler;
+
+// a pointer to the current haptic device
+cGenericHapticDevicePtr g_hapticDevice;
+
+// haptic thread
+cThread* g_hapticsThread;
+
+// flag to indicate if the haptic simulation currently running
+bool g_simulationRunning = false;
+
+// flag to indicate if the haptic simulation has terminated
+bool g_simulationFinished = false;
+
+// a frequency counter to measure the simulation haptic rate
+cFrequencyCounter g_freqCounterHaptics;
 
 int g_screenWidth = 1280;
 int g_screenHeight = 720;
@@ -2774,6 +2793,82 @@ void SDLMainLoop()
 #endif
 }
 
+void close(void)
+{
+	// stop the simulation
+	g_simulationRunning = false;
+
+	// wait for graphics and haptics loops to terminate
+	while (!g_simulationFinished) { cSleepMs(100); }
+
+	// close haptic device
+	g_hapticDevice->close();
+
+	// delete resources
+	delete g_hapticsThread;
+	delete g_handler;
+}
+
+void updateHaptics(void)
+{
+	// simulation in now running
+	g_simulationRunning = true;
+	g_simulationFinished = false;
+
+	// main haptic simulation loop
+	while (g_simulationRunning)
+	{
+		/////////////////////////////////////////////////////////////////////
+		// READ HAPTIC DEVICE
+		/////////////////////////////////////////////////////////////////////
+
+		// read position 
+		cVector3d position;
+		g_hapticDevice->getPosition(position);
+
+		cVector3d velocity;
+		g_hapticDevice->getLinearVelocity(velocity);
+
+		// read orientation 
+		cMatrix3d rotation;
+		g_hapticDevice->getRotation(rotation);
+
+		// read user-switch status (button 0)
+		bool button = false;
+		g_hapticDevice->getUserSwitch(0, button);
+
+		/////////////////////////////////////////////////////////////////////
+		// UPDATE 3D CURSOR MODEL
+		/////////////////////////////////////////////////////////////////////
+
+		// update position and orienation of cursor
+		//scene->m_cursor->SetPosition(scene->m_cursorOffset + position);
+		//cursor->setLocalRot(rotation);
+
+		/////////////////////////////////////////////////////////////////////
+		// COMPUTE FORCES
+		/////////////////////////////////////////////////////////////////////
+
+		cVector3d force(0, 0, 0);
+		cVector3d torque(0, 0, 0);
+		double gripperForce = 0.0;
+
+		/////////////////////////////////////////////////////////////////////
+		// APPLY FORCES
+		/////////////////////////////////////////////////////////////////////
+
+		// send computed force, torque, and gripper force to haptic device
+		g_hapticDevice->setForceAndTorqueAndGripperForce(force, torque, gripperForce);
+
+		// signal frequency counter
+		g_freqCounterHaptics.signal(1);
+	}
+
+	// exit haptics thread
+	g_simulationFinished = true;
+}
+
+
 int main(int argc, char* argv[])
 {
 	// process command line args
@@ -2873,6 +2968,63 @@ int main(int argc, char* argv[])
 				g_graphics = d;
 		}
 	}
+
+
+
+
+
+	//--------------------------------------------------------------------------
+	// HAPTIC DEVICE
+	//--------------------------------------------------------------------------
+
+	// create a haptic device handler
+	g_handler = new cHapticDeviceHandler();
+
+	// get a handle to the first haptic device
+	g_handler->getDevice(g_hapticDevice, 0);
+
+	// open a connection to haptic device
+	g_hapticDevice->open();
+
+	// calibrate device (if necessary)
+	g_hapticDevice->calibrate();
+
+	// retrieve information about the current haptic device
+	cHapticDeviceInfo info = g_hapticDevice->getSpecifications();
+
+	// display a reference frame if haptic device supports orientations
+	if (info.m_sensedRotation == true)
+	{
+		/*for (Scene* scene : sceneManager->GetScenes()) {
+			cMesh* cursorMesh = scene->m_cursor->GetCollider()->GetRenderMesh();
+
+			// display reference frame
+			cursorMesh->setShowFrame(true);
+
+			// set the size of the reference frame
+			cursorMesh->setFrameSize(0.05);
+		}*/
+	}
+
+	// if the device has a gripper, enable the gripper to simulate a user switch
+	g_hapticDevice->setEnableGripperUserSwitch(true);
+
+
+
+
+	//--------------------------------------------------------------------------
+	// START SIMULATION
+	//--------------------------------------------------------------------------
+
+	// create a thread which starts the main haptics rendering loop
+	g_hapticsThread = new cThread();
+	g_hapticsThread->start(updateHaptics, CTHREAD_PRIORITY_HAPTICS);
+
+	// setup callback when application exits
+	atexit(close);
+
+
+
 
 	// opening scene
 	g_scenes.push_back(new PotPourri("Pot Pourri"));
