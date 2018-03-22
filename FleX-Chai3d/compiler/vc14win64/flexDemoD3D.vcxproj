@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{EF4EDDD8-2620-47AA-E75D-4C682C276C02}</ProjectGuid>
     <RootNamespace>flexDemoD3D</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
@@ -49,7 +49,7 @@
       <AdditionalOptions> /d2Zi+</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>./../../../Chai3d/external/glew/include;./../../../Chai3d/external/Eigen;./../../../Chai3d/src;$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../../FleX;./../..;./../../d3d11;./../../d3d12;./../../../FleX/external/SDL2-2.0.4/include;./../../../FleX/external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;_DEBUG;_ITERATOR_DEBUG_LEVEL=2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -1000,7 +1000,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="./../../../extensions/compiler/vc14win64/flexExtD3D.vcxproj">
+    <ProjectReference Include="./../../../FleX/extensions/compiler/vc14win64/flexExtD3D.vcxproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
