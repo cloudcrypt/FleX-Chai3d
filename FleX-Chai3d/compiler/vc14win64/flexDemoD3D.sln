@@ -1,0 +1,46 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flexDemoD3D", "flexDemoD3D.vcxproj", "{EF4EDDD8-2620-47AA-E75D-4C682C276C02}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D} = {9B42889D-2F0D-0378-E87E-82C8D918DB4D}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flexExtD3D", "..\..\..\FleX\extensions\compiler\vc14win64\flexExtD3D.vcxproj", "{9B42889D-2F0D-0378-E87E-82C8D918DB4D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CHAI3D", "..\..\..\Chai3d\CHAI3D-VS2015.vcxproj", "{A9F01342-5463-4634-B1F9-BF98CD5591B0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		debug|x64 = debug|x64
+		debug|x86 = debug|x86
+		release|x64 = release|x64
+		release|x86 = release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.debug|x64.ActiveCfg = debug|x64
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.debug|x64.Build.0 = debug|x64
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.debug|x86.ActiveCfg = debug|x64
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.release|x64.ActiveCfg = release|x64
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.release|x64.Build.0 = release|x64
+		{EF4EDDD8-2620-47AA-E75D-4C682C276C02}.release|x86.ActiveCfg = release|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.debug|x64.ActiveCfg = debug|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.debug|x64.Build.0 = debug|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.debug|x86.ActiveCfg = debug|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.release|x64.ActiveCfg = release|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.release|x64.Build.0 = release|x64
+		{9B42889D-2F0D-0378-E87E-82C8D918DB4D}.release|x86.ActiveCfg = release|x64
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.debug|x64.ActiveCfg = Debug|x64
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.debug|x64.Build.0 = Debug|x64
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.debug|x86.ActiveCfg = Debug|Win32
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.debug|x86.Build.0 = Debug|Win32
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.release|x64.ActiveCfg = Release|x64
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.release|x64.Build.0 = Release|x64
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.release|x86.ActiveCfg = Release|Win32
+		{A9F01342-5463-4634-B1F9-BF98CD5591B0}.release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
