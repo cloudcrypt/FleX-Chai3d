@@ -25,23 +25,23 @@
 //
 // Copyright (c) 2013-2017 NVIDIA Corporation. All rights reserved.
 
-#include "../core/types.h"
-#include "../core/maths.h"
-#include "../core/platform.h"
-#include "../core/mesh.h"
-#include "../core/voxelize.h"
-#include "../core/sdf.h"
-#include "../core/pfm.h"
-#include "../core/tga.h"
-#include "../core/perlin.h"
-#include "../core/convex.h"
-#include "../core/cloth.h"
+#include "core/types.h"
+#include "core/maths.h"
+#include "core/platform.h"
+#include "core/mesh.h"
+#include "core/voxelize.h"
+#include "core/sdf.h"
+#include "core/pfm.h"
+#include "core/tga.h"
+#include "core/perlin.h"
+#include "core/convex.h"
+#include "core/cloth.h"
 
-#include "../external/SDL2-2.0.4/include/SDL.h"
+#include "external/SDL2-2.0.4/include/SDL.h"
 
-#include "../include/NvFlex.h"
-#include "../include/NvFlexExt.h"
-#include "../include/NvFlexDevice.h"
+#include "include/NvFlex.h"
+#include "include/NvFlexExt.h"
+#include "include/NvFlexDevice.h"
 
 #include <iostream>
 #include <map>

@@ -48,7 +48,7 @@
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalOptions> /d2Zi+</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../..;./../..;./../../d3d11;./../../d3d12;./../../../external/SDL2-2.0.4/include;./../../../external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../../FleX;./../..;./../../d3d11;./../../d3d12;./../../../FleX/external/SDL2-2.0.4/include;./../../../FleX/external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -58,7 +58,7 @@
     </ClCompile>
     <Link>
       <AdditionalOptions>/DELAYLOAD:d3d11.dll /DELAYLOAD:d3d12.dll /DELAYLOAD:dxgi.dll</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3dcompiler.lib;delayimp.lib;./../../../external/SDL2-2.0.4/lib/x64/SDL2.lib;./../../../external/SDL2-2.0.4/lib/x64/SDL2main.lib;./../../../external/NvToolsExt/lib/x64/nvToolsExt64_1.lib;./../../../external/D3D12/libs/x64/d3d12.lib;./../../../lib/win64/NvFlexDebugD3D_x64.lib;./../../../lib/win64/NvFlexExtDebugD3D_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3dcompiler.lib;delayimp.lib;./../../../FleX/external/SDL2-2.0.4/lib/x64/SDL2.lib;./../../../FleX/external/SDL2-2.0.4/lib/x64/SDL2main.lib;./../../../FleX/external/NvToolsExt/lib/x64/nvToolsExt64_1.lib;./../../../FleX/external/D3D12/libs/x64/d3d12.lib;./../../../FleX/lib/win64/NvFlexDebugD3D_x64.lib;./../../../FleX/lib/win64/NvFlexExtDebugD3D_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)NvFlexDemoDebugD3D_x64.exe</OutputFile>
       <AdditionalLibraryDirectories>$(CUDA_PATH)/lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>$(OutDir)/NvFlexDemoDebugD3D_x64.exe.pdb</ProgramDatabaseFile>
@@ -89,7 +89,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions> /d2Zi+</AdditionalOptions>
       <Optimization>Full</Optimization>
-      <AdditionalIncludeDirectories>$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../..;./../..;./../../d3d11;./../../d3d12;./../../../external/SDL2-2.0.4/include;./../../../external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CUDA_PATH)/include;$(CUDA_PATH)/extras/cupti/include;./../../../FleX;./../..;./../../d3d11;./../../d3d12;./../../../FleX/external/SDL2-2.0.4/include;./../../../FleX/external/D3D12/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CONSOLE;WIN32;_CRT_SECURE_NO_WARNINGS;FLEX_DX;FLEX_DX12;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -99,7 +99,7 @@
     </ClCompile>
     <Link>
       <AdditionalOptions>/DELAYLOAD:d3d11.dll /DELAYLOAD:d3d12.dll /DELAYLOAD:dxgi.dll</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3dcompiler.lib;delayimp.lib;./../../../external/SDL2-2.0.4/lib/x64/SDL2.lib;./../../../external/SDL2-2.0.4/lib/x64/SDL2main.lib;./../../../external/NvToolsExt/lib/x64/nvToolsExt64_1.lib;./../../../external/D3D12/libs/x64/d3d12.lib;./../../../lib/win64/NvFlexReleaseD3D_x64.lib;./../../../lib/win64/NvFlexExtReleaseD3D_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3dcompiler.lib;delayimp.lib;./../../../FleX/external/SDL2-2.0.4/lib/x64/SDL2.lib;./../../../FleX/external/SDL2-2.0.4/lib/x64/SDL2main.lib;./../../../FleX/external/NvToolsExt/lib/x64/nvToolsExt64_1.lib;./../../../FleX/external/D3D12/libs/x64/d3d12.lib;./../../../FleX/lib/win64/NvFlexReleaseD3D_x64.lib;./../../../FleX/lib/win64/NvFlexExtReleaseD3D_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)NvFlexDemoReleaseD3D_x64.exe</OutputFile>
       <AdditionalLibraryDirectories>$(CUDA_PATH)/lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>$(OutDir)/NvFlexDemoReleaseD3D_x64.exe.pdb</ProgramDatabaseFile>
@@ -252,85 +252,85 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\NvFlex.h">
+    <ClInclude Include="..\..\..\FleX\include\NvFlex.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\include\NvFlexDevice.h">
+    <ClInclude Include="..\..\..\FleX\include\NvFlexDevice.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\include\NvFlexExt.h">
+    <ClInclude Include="..\..\..\FleX\include\NvFlexExt.h">
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\core\aabbtree.cpp">
+    <ClCompile Include="..\..\..\FleX\core\aabbtree.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\core.cpp">
+    <ClCompile Include="..\..\..\FleX\core\core.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\extrude.cpp">
+    <ClCompile Include="..\..\..\FleX\core\extrude.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\maths.cpp">
+    <ClCompile Include="..\..\..\FleX\core\maths.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\mesh.cpp">
+    <ClCompile Include="..\..\..\FleX\core\mesh.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\perlin.cpp">
+    <ClCompile Include="..\..\..\FleX\core\perlin.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\pfm.cpp">
+    <ClCompile Include="..\..\..\FleX\core\pfm.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\platform.cpp">
+    <ClCompile Include="..\..\..\FleX\core\platform.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\png.cpp">
+    <ClCompile Include="..\..\..\FleX\core\png.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\sdf.cpp">
+    <ClCompile Include="..\..\..\FleX\core\sdf.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\tga.cpp">
+    <ClCompile Include="..\..\..\FleX\core\tga.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\core\voxelize.cpp">
+    <ClCompile Include="..\..\..\FleX\core\voxelize.cpp">
     </ClCompile>
-    <ClInclude Include="..\..\..\core\aabbtree.h">
+    <ClInclude Include="..\..\..\FleX\core\aabbtree.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\cloth.h">
+    <ClInclude Include="..\..\..\FleX\core\cloth.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\convex.h">
+    <ClInclude Include="..\..\..\FleX\core\convex.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\core.h">
+    <ClInclude Include="..\..\..\FleX\core\core.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\extrude.h">
+    <ClInclude Include="..\..\..\FleX\core\extrude.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\mat22.h">
+    <ClInclude Include="..\..\..\FleX\core\mat22.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\mat33.h">
+    <ClInclude Include="..\..\..\FleX\core\mat33.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\mat44.h">
+    <ClInclude Include="..\..\..\FleX\core\mat44.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\maths.h">
+    <ClInclude Include="..\..\..\FleX\core\maths.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\matnn.h">
+    <ClInclude Include="..\..\..\FleX\core\matnn.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\mesh.h">
+    <ClInclude Include="..\..\..\FleX\core\mesh.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\perlin.h">
+    <ClInclude Include="..\..\..\FleX\core\perlin.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\pfm.h">
+    <ClInclude Include="..\..\..\FleX\core\pfm.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\platform.h">
+    <ClInclude Include="..\..\..\FleX\core\platform.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\png.h">
+    <ClInclude Include="..\..\..\FleX\core\png.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\point3.h">
+    <ClInclude Include="..\..\..\FleX\core\point3.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\quat.h">
+    <ClInclude Include="..\..\..\FleX\core\quat.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\sdf.h">
+    <ClInclude Include="..\..\..\FleX\core\sdf.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\tga.h">
+    <ClInclude Include="..\..\..\FleX\core\tga.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\types.h">
+    <ClInclude Include="..\..\..\FleX\core\types.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\vec2.h">
+    <ClInclude Include="..\..\..\FleX\core\vec2.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\vec3.h">
+    <ClInclude Include="..\..\..\FleX\core\vec3.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\vec4.h">
+    <ClInclude Include="..\..\..\FleX\core\vec4.h">
     </ClInclude>
-    <ClInclude Include="..\..\..\core\voxelize.h">
+    <ClInclude Include="..\..\..\FleX\core\voxelize.h">
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

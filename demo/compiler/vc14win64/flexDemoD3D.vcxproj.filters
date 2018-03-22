@@ -209,13 +209,13 @@
 		</Filter>
 	</ItemGroup>
 	<ItemGroup>
-		<ClInclude Include="..\..\..\include\NvFlex.h">
+		<ClInclude Include="..\..\..\FleX\include\NvFlex.h">
 			<Filter>include</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\include\NvFlexDevice.h">
+		<ClInclude Include="..\..\..\FleX\include\NvFlexDevice.h">
 			<Filter>include</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\include\NvFlexExt.h">
+		<ClInclude Include="..\..\..\FleX\include\NvFlexExt.h">
 			<Filter>include</Filter>
 		</ClInclude>
 	</ItemGroup>
@@ -224,112 +224,112 @@
 		</Filter>
 	</ItemGroup>
 	<ItemGroup>
-		<ClCompile Include="..\..\..\core\aabbtree.cpp">
+		<ClCompile Include="..\..\..\FleX\core\aabbtree.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\core.cpp">
+		<ClCompile Include="..\..\..\FleX\core\core.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\extrude.cpp">
+		<ClCompile Include="..\..\..\FleX\core\extrude.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\maths.cpp">
+		<ClCompile Include="..\..\..\FleX\core\maths.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\mesh.cpp">
+		<ClCompile Include="..\..\..\FleX\core\mesh.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\perlin.cpp">
+		<ClCompile Include="..\..\..\FleX\core\perlin.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\pfm.cpp">
+		<ClCompile Include="..\..\..\FleX\core\pfm.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\platform.cpp">
+		<ClCompile Include="..\..\..\FleX\core\platform.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\png.cpp">
+		<ClCompile Include="..\..\..\FleX\core\png.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\sdf.cpp">
+		<ClCompile Include="..\..\..\FleX\core\sdf.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\tga.cpp">
+		<ClCompile Include="..\..\..\FleX\core\tga.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClCompile Include="..\..\..\core\voxelize.cpp">
+		<ClCompile Include="..\..\..\FleX\core\voxelize.cpp">
 			<Filter>core</Filter>
 		</ClCompile>
-		<ClInclude Include="..\..\..\core\aabbtree.h">
+		<ClInclude Include="..\..\..\FleX\core\aabbtree.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\cloth.h">
+		<ClInclude Include="..\..\..\FleX\core\cloth.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\convex.h">
+		<ClInclude Include="..\..\..\FleX\core\convex.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\core.h">
+		<ClInclude Include="..\..\..\FleX\core\core.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\extrude.h">
+		<ClInclude Include="..\..\..\FleX\core\extrude.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\mat22.h">
+		<ClInclude Include="..\..\..\FleX\core\mat22.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\mat33.h">
+		<ClInclude Include="..\..\..\FleX\core\mat33.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\mat44.h">
+		<ClInclude Include="..\..\..\FleX\core\mat44.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\maths.h">
+		<ClInclude Include="..\..\..\FleX\core\maths.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\matnn.h">
+		<ClInclude Include="..\..\..\FleX\core\matnn.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\mesh.h">
+		<ClInclude Include="..\..\..\FleX\core\mesh.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\perlin.h">
+		<ClInclude Include="..\..\..\FleX\core\perlin.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\pfm.h">
+		<ClInclude Include="..\..\..\FleX\core\pfm.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\platform.h">
+		<ClInclude Include="..\..\..\FleX\core\platform.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\png.h">
+		<ClInclude Include="..\..\..\FleX\core\png.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\point3.h">
+		<ClInclude Include="..\..\..\FleX\core\point3.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\quat.h">
+		<ClInclude Include="..\..\..\FleX\core\quat.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\sdf.h">
+		<ClInclude Include="..\..\..\FleX\core\sdf.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\tga.h">
+		<ClInclude Include="..\..\..\FleX\core\tga.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\types.h">
+		<ClInclude Include="..\..\..\FleX\core\types.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\vec2.h">
+		<ClInclude Include="..\..\..\FleX\core\vec2.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\vec3.h">
+		<ClInclude Include="..\..\..\FleX\core\vec3.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\vec4.h">
+		<ClInclude Include="..\..\..\FleX\core\vec4.h">
 			<Filter>core</Filter>
 		</ClInclude>
-		<ClInclude Include="..\..\..\core\voxelize.h">
+		<ClInclude Include="..\..\..\FleX\core\voxelize.h">
 			<Filter>core</Filter>
 		</ClInclude>
 	</ItemGroup>

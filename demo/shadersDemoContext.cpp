@@ -3,7 +3,7 @@
 
 // SDL
 //#include "../external/SDL2-2.0.4/include/SDL_syswm.h"
-#include "../external/SDL2-2.0.4/include/SDL.h"
+#include "external/SDL2-2.0.4/include/SDL.h"
 
 // This
 #include "shadersDemoContext.h"

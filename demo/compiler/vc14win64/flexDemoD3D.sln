@@ -5,7 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flexDemoD3D", "./flexDemoD3
 		{9B42889D-2F0D-0378-E87E-82C8D918DB4D} = {9B42889D-2F0D-0378-E87E-82C8D918DB4D}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flexExtD3D", "./../../../extensions/compiler/vc14win64/flexExtD3D.vcxproj", "{9B42889D-2F0D-0378-E87E-82C8D918DB4D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flexExtD3D", "./../../../FleX/extensions/compiler/vc14win64/flexExtD3D.vcxproj", "{9B42889D-2F0D-0378-E87E-82C8D918DB4D}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject

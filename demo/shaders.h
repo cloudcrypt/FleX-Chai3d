@@ -29,10 +29,10 @@
 
 #define STRINGIFY(A) #A
 
-#include "../core/maths.h"
-#include "../core/mesh.h"
+#include "core/maths.h"
+#include "core/mesh.h"
 
-#include "../include/NvFlex.h"
+#include "include/NvFlex.h"
 
 void GetRenderDevice(void** device, void** context);
 
