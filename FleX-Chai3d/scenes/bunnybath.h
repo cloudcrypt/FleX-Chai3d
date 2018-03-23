@@ -76,6 +76,8 @@ public:
 		g_drawPoints = false;
 		g_drawEllipsoids = true;
 		g_drawDiffuse = true;
+
+		CreateCursor(radius);
 	}
 
 	bool mDam;
