@@ -73,7 +73,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-    <OutDir>./../../../bin/win64\</OutDir>
+    <OutDir>./../../../bin/win64/</OutDir>
     <IntDir>./build/win64/D3D/demo/release\</IntDir>
     <TargetExt>.exe</TargetExt>
     <TargetName>NvFlexDemoReleaseD3D_x64</TargetName>
