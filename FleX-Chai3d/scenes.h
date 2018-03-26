@@ -36,10 +36,19 @@ class Scene
 {
 public:
 
-	Scene(const char* name) : mName(name) {}
+	Scene(const char* name) : mName(name), mCursorIndex(-1) {}
 	
 	virtual void Initialize() = 0;
 	virtual void PostInitialize() {}
+
+	void CreateCursor(float spacing) {
+		// Cursor
+		int startCount = g_buffers->positions.size();
+		CreateParticleShape(GetFilePathByPlatform("../../data/sphere.ply").c_str(), Vec3(0.f, 5.f, 0.f), 0.25f, 0.0f, spacing, 0.0f, 1.0f, true, 1.0f, NvFlexMakePhase(10000, 0), true, 0.0f);
+		int endCount = g_buffers->positions.size();
+		mCursorIndex = (startCount + endCount) / 2;
+		g_buffers->positions[mCursorIndex].w = 0.f;
+	}
 	
 	// update any buffers (all guaranteed to be mapped here)
 	virtual void Update() {}	
@@ -57,6 +66,8 @@ public:
 	virtual const char* GetName() { return mName; }
 
 	const char* mName;
+
+	int mCursorIndex;
 };
 
 

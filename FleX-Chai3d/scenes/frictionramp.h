@@ -36,5 +36,7 @@ public:
 			// ramp
 			AddBox(Vec3(5.0f, 0.25f, 1.f), Vec3(3.0f, 1.0f, -i*2.0f), QuatFromAxisAngle(Vec3(0.0f, 0.0f, 1.0f), DegToRad(-11.25f*(i + 1))));
 		}
+
+		CreateCursor(radius);
 	}
 };

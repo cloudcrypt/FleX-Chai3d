@@ -197,6 +197,17 @@ Colour g_colors[] =
 	Colour(0.612f, 0.194f, 0.394f)
 };
 
+struct HapticsUpdate {
+	HapticsUpdate() : updated(false) {}
+
+	bool updated;
+	int cursorIndex;
+	Vec3 cursorPosition;
+
+	Vec3 velocity;
+	Vec4 position;
+};
+
 struct SimBuffers
 {
 	NvFlexVector<Vec4> positions;
@@ -266,6 +277,7 @@ struct SimBuffers
 };
 
 SimBuffers* g_buffers;
+HapticsUpdate g_hapticsUpdates;
 
 void MapBuffers(SimBuffers* buffers)
 {
@@ -2078,6 +2090,16 @@ void UpdateFrame()
 		UpdateScene();
 	}
 
+	if (g_hapticsUpdates.updated) {
+		g_hapticsUpdates.updated = false;
+		g_buffers->positions[g_hapticsUpdates.cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
+		g_buffers->positions[g_hapticsUpdates.cursorIndex].y = g_hapticsUpdates.cursorPosition.y;
+		g_buffers->positions[g_hapticsUpdates.cursorIndex].z = g_hapticsUpdates.cursorPosition.z;
+
+		g_hapticsUpdates.velocity = g_buffers->velocities[g_hapticsUpdates.cursorIndex];
+		g_hapticsUpdates.position = g_buffers->positions[g_hapticsUpdates.cursorIndex];
+	}
+
 	//-------------------------------------------------------------------
 	// Render
 
@@ -2815,9 +2837,19 @@ void updateHaptics(void)
 	g_simulationRunning = true;
 	g_simulationFinished = false;
 
+	cPrecisionClock clock;
+	clock.start();
+
+	double lastTick = clock.getCurrentTimeSeconds();
+	Vec3 lastVelocity = Vec3();
+
 	// main haptic simulation loop
 	while (g_simulationRunning)
 	{
+		double thisTick = clock.getCurrentTimeSeconds();
+		double deltaTick = thisTick - lastTick;
+		lastTick = thisTick;
+
 		/////////////////////////////////////////////////////////////////////
 		// READ HAPTIC DEVICE
 		/////////////////////////////////////////////////////////////////////
@@ -2845,11 +2877,31 @@ void updateHaptics(void)
 		//scene->m_cursor->SetPosition(scene->m_cursorOffset + position);
 		//cursor->setLocalRot(rotation);
 
+		Vec3 particleForce;
+		
+		if (thisTick > 0.1 && g_scene > -1) {
+			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
+			if (cursorIndex > -1) {
+				g_hapticsUpdates.updated = true;
+				g_hapticsUpdates.cursorIndex = cursorIndex;
+				g_hapticsUpdates.cursorPosition = Vec3(position.y(), position.z(), position.x()) * 100.f;
+
+				/*Vec3 velocity = g_hapticsUpdates.velocity;
+				Vec4 position = g_hapticsUpdates.position;
+
+				Vec3 acc = (velocity - lastVelocity) / deltaTick;
+				particleForce = (1.f / position.w) * acc;
+
+				lastVelocity = velocity;*/
+			}
+		}
+
 		/////////////////////////////////////////////////////////////////////
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
 
-		cVector3d force(0, 0, 0);
+		//particleForce /= 100.f;
+		cVector3d force(particleForce.x, particleForce.z, particleForce.y);
 		cVector3d torque(0, 0, 0);
 		double gripperForce = 0.0;
 
@@ -3012,19 +3064,19 @@ int main(int argc, char* argv[])
 
 
 
+	
+
+
+
+
+
 	//--------------------------------------------------------------------------
-	// START SIMULATION
+	// INITIALIZE DEMO SIMULATION
 	//--------------------------------------------------------------------------
 
-	// create a thread which starts the main haptics rendering loop
-	g_hapticsThread = new cThread();
-	g_hapticsThread->start(updateHaptics, CTHREAD_PRIORITY_HAPTICS);
-
-	// setup callback when application exits
-	atexit(close);
-
-
-
+	// haptics-enabled scenes
+	g_scenes.push_back(new FrictionRamp("Friction Ramp"));
+	g_scenes.push_back(new BunnyBath("Bunny Bath Dam", true));
 
 	// opening scene
 	g_scenes.push_back(new PotPourri("Pot Pourri"));
@@ -3181,7 +3233,7 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(plasticStackScene);
 
 	// collision scenes
-	g_scenes.push_back(new FrictionRamp("Friction Ramp"));
+	//g_scenes.push_back(new FrictionRamp("Friction Ramp"));
 	g_scenes.push_back(new FrictionMovingShape("Friction Moving Box", 0));
 	g_scenes.push_back(new FrictionMovingShape("Friction Moving Sphere", 1));
 	g_scenes.push_back(new FrictionMovingShape("Friction Moving Capsule", 2));
@@ -3251,7 +3303,7 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(new FluidBlock("Fluid Block"));
 	g_scenes.push_back(new FluidClothCoupling("Fluid Cloth Coupling Water", false));
 	g_scenes.push_back(new FluidClothCoupling("Fluid Cloth Coupling Goo", true));
-	g_scenes.push_back(new BunnyBath("Bunny Bath Dam", true));
+	//g_scenes.push_back(new BunnyBath("Bunny Bath Dam", true));
 
 	// init graphics
 	RenderInitOptions options;
@@ -3420,6 +3472,17 @@ int main(int argc, char* argv[])
 	StartGpuWork();
 	Init(g_scene);
 	EndGpuWork();
+
+	//--------------------------------------------------------------------------
+	// START HAPTICS THREAD
+	//--------------------------------------------------------------------------
+
+	// create a thread which starts the main haptics rendering loop
+	g_hapticsThread = new cThread();
+	g_hapticsThread->start(updateHaptics, CTHREAD_PRIORITY_HAPTICS);
+
+	// setup callback when application exits
+	atexit(close);
 
 	SDLMainLoop();
 
