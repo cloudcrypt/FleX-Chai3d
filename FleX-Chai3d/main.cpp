@@ -2092,12 +2092,23 @@ void UpdateFrame()
 
 	if (g_hapticsUpdates.updated) {
 		g_hapticsUpdates.updated = false;
-		g_buffers->positions[g_hapticsUpdates.cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
+		/*g_buffers->positions[g_hapticsUpdates.cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
 		g_buffers->positions[g_hapticsUpdates.cursorIndex].y = g_hapticsUpdates.cursorPosition.y;
 		g_buffers->positions[g_hapticsUpdates.cursorIndex].z = g_hapticsUpdates.cursorPosition.z;
 
 		g_hapticsUpdates.velocity = g_buffers->velocities[g_hapticsUpdates.cursorIndex];
-		g_hapticsUpdates.position = g_buffers->positions[g_hapticsUpdates.cursorIndex];
+		g_hapticsUpdates.position = g_buffers->positions[g_hapticsUpdates.cursorIndex];*/
+
+		g_buffers->shapePrevPositions[g_hapticsUpdates.cursorIndex] = g_buffers->shapePositions[g_hapticsUpdates.cursorIndex];
+
+		g_buffers->shapePositions[g_hapticsUpdates.cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
+		g_buffers->shapePositions[g_hapticsUpdates.cursorIndex].y = g_hapticsUpdates.cursorPosition.y;
+		g_buffers->shapePositions[g_hapticsUpdates.cursorIndex].z = g_hapticsUpdates.cursorPosition.z;
+
+		g_shapesChanged = true;
+
+		g_hapticsUpdates.velocity = Vec3(0.f);
+		g_hapticsUpdates.position = g_buffers->shapePositions[g_hapticsUpdates.cursorIndex];
 	}
 
 	//-------------------------------------------------------------------
@@ -2843,6 +2854,8 @@ void updateHaptics(void)
 	double lastTick = clock.getCurrentTimeSeconds();
 	Vec3 lastVelocity = Vec3();
 
+	double velocityChangeTick = 0.0;
+
 	// main haptic simulation loop
 	while (g_simulationRunning)
 	{
@@ -2877,22 +2890,34 @@ void updateHaptics(void)
 		//scene->m_cursor->SetPosition(scene->m_cursorOffset + position);
 		//cursor->setLocalRot(rotation);
 
+		constexpr float multiplier = 100.f;
+
 		Vec3 particleForce;
+		Vec3 devicePosition = Vec3(position.y(), position.z(), position.x()) * multiplier;
 		
 		if (thisTick > 0.1 && g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
 			if (cursorIndex > -1) {
 				g_hapticsUpdates.updated = true;
 				g_hapticsUpdates.cursorIndex = cursorIndex;
-				g_hapticsUpdates.cursorPosition = Vec3(position.y(), position.z(), position.x()) * 100.f;
+				g_hapticsUpdates.cursorPosition = devicePosition;
+				
+				Vec4 particlePosition = g_hapticsUpdates.position;
 
-				/*Vec3 velocity = g_hapticsUpdates.velocity;
-				Vec4 position = g_hapticsUpdates.position;
+				velocityChangeTick += deltaTick;
+				Vec3 velocity = g_hapticsUpdates.velocity;
+				if (lastVelocity != velocity) {
 
-				Vec3 acc = (velocity - lastVelocity) / deltaTick;
-				particleForce = (1.f / position.w) * acc;
+					/*Vec3 acc = ((velocity - lastVelocity) / velocityChangeTick);// -Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
 
-				lastVelocity = velocity;*/
+					particleForce = (1.f / position.w) * acc * multiplier;
+
+					lastVelocity = velocity;
+					velocityChangeTick = 0.0;*/
+
+					//particleForce = (devicePosition - particlePosition) * 3000.f;
+				}
+				//particleForce = (devicePosition - particlePosition) * 3000.f / multiplier;
 			}
 		}
 
@@ -2900,7 +2925,6 @@ void updateHaptics(void)
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
 
-		//particleForce /= 100.f;
 		cVector3d force(particleForce.x, particleForce.z, particleForce.y);
 		cVector3d torque(0, 0, 0);
 		double gripperForce = 0.0;
