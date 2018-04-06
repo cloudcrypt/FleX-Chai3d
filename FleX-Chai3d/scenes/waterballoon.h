@@ -74,6 +74,8 @@ public:
 		g_numExtraParticles = 20000;
 		g_numSubsteps = 3;
 
+		g_fluidColor = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
 		g_params.radius = radius;
 		g_params.dynamicFriction = 0.125f;
 		g_params.dissipation = 0.0f;

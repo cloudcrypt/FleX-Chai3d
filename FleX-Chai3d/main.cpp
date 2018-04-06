@@ -1291,7 +1291,6 @@ void UpdateCursor() {
 	contactIndices.map();
 	contactCounts.map();
 
-	//Vec3 netVelocity;
 	Vec3 netForce;
 
 	Vec3 cursorPosition = g_buffers->shapePositions[cursorIndex];
@@ -1316,17 +1315,18 @@ void UpdateCursor() {
 				Vec4(0.0f, 1.0f, 0.0f, 0.0f));*/
 
 			if (contactVelocity.w == cursorIndex) {
-				//netVelocity += Vec3(g_buffers->velocities[particleIndex]) * 0.5f;
-				//netVelocity += Vec3(velocity) * 0.5f;
-
 				int phase = g_buffers->phases[particleIndex];
-				float mult = phase & eNvFlexPhaseFluid ? 0.25f : 1.f;
+				bool fluid = phase & eNvFlexPhaseFluid || phase;
+				float mult = fluid ? 0.2f : 1.f;
 
 				Vec3 velocity = g_buffers->velocities[particleIndex];
+				float speed = Length(velocity);
 				Vec3 prevVelocity = g_buffers->prevVelocities[particleIndex];
 				Vec4 particle = g_buffers->positions[particleIndex];
 				Vec3 position = particle;
 				float mass = 1.f / particle.w;
+
+				mult += (speed / 10.f);
 
 				Vec3 cursorToPosition = (position - cursorPosition);
 
@@ -1335,7 +1335,12 @@ void UpdateCursor() {
 				Vec3 force = -(position - cursorPosition) * mult;
 				x++;
 
-				if (Dot3(velocity, cursorToPosition) < 0) {
+				bool particleMovingAwayFromCursor = Dot3(velocity, cursorPosition - position) < 0;
+				if (particleMovingAwayFromCursor) {
+					force *= 0.5f;
+				}
+
+				if (Dot3(velocity, cursorPosition - position) < 0) {
 					Vec3 deltaVelocity = velocity - prevVelocity;
 					Vec3 acceleration = deltaVelocity / g_realdt;
 					//acceleration -= Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
