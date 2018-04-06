@@ -1129,7 +1129,6 @@ void UpdateEmitters()
 			Vec3 emitterRight = g_emitters[e].mRight;
 			Vec3 emitterPos = g_emitters[e].mPos;
 
-
 			float r = g_params.fluidRestDistance;
 			int phase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide | eNvFlexPhaseFluid);
 
@@ -1320,6 +1319,9 @@ void UpdateCursor() {
 				//netVelocity += Vec3(g_buffers->velocities[particleIndex]) * 0.5f;
 				//netVelocity += Vec3(velocity) * 0.5f;
 
+				int phase = g_buffers->phases[particleIndex];
+				float mult = phase & eNvFlexPhaseFluid ? 0.25f : 1.f;
+
 				Vec3 velocity = g_buffers->velocities[particleIndex];
 				Vec3 prevVelocity = g_buffers->prevVelocities[particleIndex];
 				Vec4 particle = g_buffers->positions[particleIndex];
@@ -1330,7 +1332,7 @@ void UpdateCursor() {
 
 				Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * cursorRadius;
 
-				Vec3 force = -(position - cursorPosition);
+				Vec3 force = -(position - cursorPosition) * mult;
 				x++;
 
 				if (Dot3(velocity, cursorToPosition) < 0) {
