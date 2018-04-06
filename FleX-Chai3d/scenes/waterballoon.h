@@ -150,9 +150,6 @@ public:
 		g_drawSprings = 0;
 		g_drawCloth = false;
 		g_warmup = true;
-
-
-		CreateCursor(radius);
 	}
 
 	void RebuildConstraints()

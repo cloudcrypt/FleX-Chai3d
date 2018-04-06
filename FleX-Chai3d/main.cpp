@@ -1340,7 +1340,7 @@ void UpdateCursor() {
 					//force += mass * acceleration * 0.05f;
 				}
 
-				netForce += force * 0.5f;
+				netForce += force;
 			}
 		}
 	}

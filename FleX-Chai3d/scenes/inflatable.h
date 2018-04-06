@@ -122,8 +122,6 @@ public:
 		g_drawPoints = false;
 		g_drawSprings = 0;
 		g_drawCloth = false;
-
-		CreateCursor(radius);
 	}
 
 	virtual void DoGui()

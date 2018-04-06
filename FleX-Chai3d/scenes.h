@@ -39,16 +39,11 @@ public:
 	Scene(const char* name) : mName(name), mCursorIndex(-1), mCursorRadius(0.2f) {}
 	
 	virtual void Initialize() = 0;
-	virtual void PostInitialize() {}
+	virtual void PostInitialize() {
+		CreateCursor();
+	}
 
-	void CreateCursor(float spacing) {
-		// Cursor
-		/*int startCount = g_buffers->positions.size();
-		CreateParticleShape(GetFilePathByPlatform("../../data/sphere.ply").c_str(), Vec3(0.f, 5.f, 0.f), 0.25f, 0.0f, spacing, 0.0f, 1.0f, true, 1.0f, NvFlexMakePhase(10000, 0), true, 0.0f);
-		int endCount = g_buffers->positions.size();
-		mCursorIndex = (startCount + endCount) / 2;
-		g_buffers->positions[mCursorIndex].w = 0.f;*/
-
+	void CreateCursor() {
 		AddSphere(mCursorRadius, Vec3(0.f, 0.f, 0.f), Quat());
 		mCursorIndex = g_buffers->shapePositions.size() - 1;
 	}
