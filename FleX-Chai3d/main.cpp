@@ -215,8 +215,7 @@ struct HapticsUpdate {
 	Vec4 position;
 
 	Vec3 force;
-
-	Vec3 lastForceApplied;
+	Vec3 lastForce;
 
 	vector<NvFlexCollisionGeometry> shapeGeometry;
 	vector<Vec4> shapePositions;
@@ -660,7 +659,7 @@ void Init(int scene, bool centerCamera = true)
 	}
 
 	g_hapticsUpdates.cursorOffset = Vec3(0.f);
-	g_hapticsUpdates.lastForceApplied = Vec3(0.f);
+	g_hapticsUpdates.lastForce = Vec3(0.f);
 
 	// alloc buffers
 	g_buffers = AllocBuffers(g_flexLib);
@@ -3145,10 +3144,6 @@ void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
 	constexpr float speed = 0.0001;
 	constexpr float distScale = 4;
 
-	// Define the workspace boundaries
-	const Vec3 workspaceMin = Vec3(-1.f, 0.f, -1.f) * 10.f;
-	const Vec3 workspaceMax = Vec3(1.f, 1.f, 1.f) * 10.f;
-
 	// Modify the movement vector. The z-axis needs to be moved forward
 	// slightly so that the forward movement can be equal to the backward
 	// movement. Then the z-axis needs to be scaled so that it can be
@@ -3166,8 +3161,7 @@ void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
 		const Vec3 norm = Normalize(scaledPosition);
 		const float dist = Min(Length(scaledPosition) - radius, maxDist) / maxDist;
 		const float scaledDist = pow(dist, distScale) * speed;
-		const Vec3 newPos = g_hapticsUpdates.cursorOffset + (norm * scaledDist);
-		g_hapticsUpdates.cursorOffset = Clamp(newPos, workspaceMin, workspaceMax);
+		g_hapticsUpdates.cursorOffset = g_hapticsUpdates.cursorOffset + (norm * scaledDist);
 
 		// Update joystick simulation force
 		moveForce = stiffness * dist * -norm;
@@ -3178,6 +3172,14 @@ void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
 
 	// Update the camera
 	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);
+}
+
+Vec3 FromChai(const cVector3d& a_vector) {
+	return Vec3(a_vector.y(), a_vector.z(), a_vector.x());
+}
+
+cVector3d ToChai(const Vec3& a_vector) {
+	return cVector3d(a_vector.z, a_vector.x, a_vector.y);
 }
 
 void updateHaptics(void)
@@ -3231,49 +3233,36 @@ void updateHaptics(void)
 		constexpr float multiplier = 100.f;
 
 		Vec3 particleForce;
-		Vec3 devicePosition = Vec3(position.y(), position.z(), position.x()) * multiplier;
+		Vec3 devicePosition = FromChai(position) * multiplier;
+		Vec3 deviceVelocity = FromChai(velocity);
 		
 		if (g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
 			if (cursorIndex > -1) {
 				g_hapticsUpdates.updated = true;
 				g_hapticsUpdates.dt = deltaTick;
-				
-				/*g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
-				g_hapticsUpdates.cursorPosition = devicePosition;*/
 
+				// Move cursor based on device
 				UpdateWorkspace(devicePosition, multiplier);
-
-
-				// Damping:
-				/*Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.prevCursorPosition) / g_hapticsUpdates.dt;
-				Vec3 dampingForce = -10000.f * deviceVelocity;
-				particleForce += dampingForce;*/
 				
+				// Update cursor based on connected particles
+				bool success = g_mutex.try_lock();
+				if (success) {
+					UpdateCursor();
+					g_mutex.unlock();
+				}
 
+				// Discrete-time low-pass filter
+				float Tf = 0.1f;
+				float a = deltaTick / (Tf);
+				float K = 1.f;
+				particleForce = ((1.f - a) * g_hapticsUpdates.lastForce) + (K * a * g_hapticsUpdates.force);
+				g_hapticsUpdates.lastForce = particleForce;
 
-				//Vec4 particlePosition = g_hapticsUpdates.position;
-
-				//velocityChangeTick += deltaTick;
-				//Vec3 velocity = g_hapticsUpdates.velocity;
-				//if (lastVelocity != velocity) {
-
-					/*Vec3 acc = ((velocity - lastVelocity) / velocityChangeTick);// -Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
-
-					particleForce = (1.f / position.w) * acc * multiplier;
-
-					lastVelocity = velocity;
-					velocityChangeTick = 0.0;*/
-
-					//particleForce = (devicePosition - particlePosition) * 3000.f;
-				//}
-				//particleForce = (devicePosition - particlePosition) * 3000.f / multiplier;
-				g_mutex.lock();
-				UpdateCursor();
-				g_mutex.unlock();
-				particleForce = g_hapticsUpdates.force;
-
-
+				// Add damping
+				//Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.prevCursorPosition) / g_hapticsUpdates.dt;
+				Vec3 dampingForce = -1.f * deviceVelocity;
+				particleForce += dampingForce;
 
 				constexpr float stiffness = 100.f; // 100.f;
 				particleForce += stiffness * GetCollisionForces(cursorIndex);
@@ -3284,15 +3273,7 @@ void updateHaptics(void)
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
 
-		// Discrete-time low-pass filter:
-		/*float Tf = 0.1f;
-		float a = deltaTick / (Tf + deltaTick);
-		Vec3 appliedForce = ((1.f - a) * g_hapticsUpdates.lastForceApplied) + (a * particleForce);
-		g_hapticsUpdates.lastForceApplied = appliedForce;*/
-
-
-
-		cVector3d force(particleForce.z, particleForce.x, particleForce.y);
+		cVector3d force = ToChai(particleForce);
 		cVector3d torque(0, 0, 0);
 		double gripperForce = 0.0;
 
