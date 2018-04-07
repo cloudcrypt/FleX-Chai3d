@@ -1412,7 +1412,6 @@ void UpdateCursor() {
 
 	Vec3 netForce;
 
-	//Vec3 cursorPosition = g_buffers->shapePositions[cursorIndex];
 	Vec3 cursorPosition = g_hapticsUpdates.cursorPosition;
 
 	if (g_hapticsUpdates.contactIndices.empty()) return;
@@ -1431,15 +1430,10 @@ void UpdateCursor() {
 			Vec4 plane = g_hapticsUpdates.contactPlanes[index];
 			Vec4 contactVelocity = g_hapticsUpdates.contactVelocities[index];
 
-
-			/*DrawLine(Vec3(g_buffers->positions[g_buffers->activeIndices[i]]),
-			Vec3(g_buffers->positions[g_buffers->activeIndices[i]]) + Vec3(plane)*scale,
-			Vec4(0.0f, 1.0f, 0.0f, 0.0f));*/
-
 			if (contactVelocity.w == cursorIndex) {
 				int phase = g_hapticsUpdates.phases[particleIndex];
 				bool fluid = phase & eNvFlexPhaseFluid;
-				float mult = fluid ? 0.2f : 1.f;
+				//float mult = fluid ? 0.2f : 1.f;
 
 				Vec3 velocity = g_hapticsUpdates.velocities[particleIndex];
 				float speed = Length(velocity);
@@ -1448,7 +1442,7 @@ void UpdateCursor() {
 				Vec3 position = particle;
 				//float mass = (1.f / particle.w) / 100;
 				//cout << mass << endl;
-				float mass = 0.00075;
+				float mass = 0.00075 * (fluid ? 1.f : 3.f);
 
 				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
 				Vec3 exertedForce = mass * acceleration;
@@ -1468,26 +1462,11 @@ void UpdateCursor() {
 					exertedForce *= 0.5f;
 				}
 
-				//if (Dot3(velocity, cursorPosition - position) < 0) {
-				//	Vec3 deltaVelocity = velocity - prevVelocity;
-				//	Vec3 acceleration = deltaVelocity / g_realdt;
-				//	//acceleration -= Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
-				//	//force += mass * acceleration * 0.05f;
-				//}
-
 				netForce += -exertedForce;// *0.05f;
 			}
 		}
 	}
 
-	/*Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.cursorPosition) / g_realdt;
-	Vec3 dampingForce = -0.2f * deviceVelocity;
-
-	netForce += dampingForce;*/
-
-
-	// damping:
-	// F_d = -v*v*c
 	g_hapticsUpdates.force = netForce;
 }
 
