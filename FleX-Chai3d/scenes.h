@@ -45,6 +45,16 @@ public:
 
 	void CreateCursor() {
 		AddSphere(g_cursorRadius, Vec3(0.f, 0.f, 0.f), Quat(), true);
+		/*Mesh* bowl = ImportMesh(GetFilePathByPlatform("../../data/bowl.obj").c_str());
+		bowl->Normalize(2.0f);
+		bowl->CalculateNormals();
+		bowl->Transform(TranslationMatrix(Point3(-1.0f, 0.0f, -1.0f)));
+		bowl->Transform(ScaleMatrix(Vec3(0.25)));
+
+		NvFlexTriangleMeshId mesh = CreateTriangleMesh(bowl);
+		AddTriangleMesh(mesh, Vec3(), Quat(), 1.0f);
+
+		delete bowl;*/
 		mCursorIndex = g_buffers->shapePositions.size() - 1;
 	}
 	

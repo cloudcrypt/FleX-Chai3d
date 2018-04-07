@@ -35,7 +35,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-    <OutDir>./../../../bin/win64\</OutDir>
+    <OutDir>./../../../bin/win64</OutDir>
     <IntDir>./build/win64/DX/debug\</IntDir>
     <TargetExt>.exe</TargetExt>
     <TargetName>NvFlexDemoDebugD3D_x64</TargetName>
