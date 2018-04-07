@@ -66,6 +66,8 @@ void AddChaiMesh(cMesh* a_mesh, const Vec3& position, const Quat& rotation, cons
 		a_mesh->setLocalPos(ToChai(position));
 		a_mesh->setLocalRot(ToChaiRotMat(rotation));
 		a_mesh->setStiffness(stiffness);
+		a_mesh->setFriction(0.1, 0.2);
+		a_mesh->m_material->setUseHapticFriction(true);
 		a_mesh->createAABBCollisionDetector(g_cursorRadius);
 		g_chaiWorld->addChild(a_mesh);
 	}
