@@ -346,3 +346,4 @@ extensions/compiler/vc14win64/build/
 
 
 FleX/lib/win64/NvFlexExtReleaseD3D_x64.lib
+FleX/lib/win64/NvFlexExtDebugD3D_x64.lib
