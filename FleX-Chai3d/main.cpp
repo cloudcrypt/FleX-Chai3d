@@ -212,9 +212,7 @@ struct HapticsUpdate {
 	HapticsUpdate() : updated(false) {}
 
 	bool updated;
-	Vec3 cursorOffset;
 	Vec3 cursorPosition;
-	Vec3 prevCursorPosition;
 	float dt;
 
 	Vec3 velocity;
@@ -691,7 +689,6 @@ void Init(int scene, bool centerCamera = true)
 		g_solver = NULL;
 	}
 
-	//g_hapticsUpdates.cursorOffset = Vec3(0.f);
 	g_chaiTool->setLocalPos(cVector3d(0.0, 0.0, 0.0));
 	g_hapticsUpdates.lastForce = Vec3(0.f);
 
@@ -3088,87 +3085,6 @@ Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Ve
 	return a_point - Project(a_point - a_planePoint, a_planeNormal);
 }
 
-Vec3 GetCollisionForces(int cursorIndex) {
-	Vec3 netForce = Vec3(0.f);
-
-	for (size_t i = 0; i < g_hapticsUpdates.shapeFlags.size(); ++i)
-	{
-		if (i == cursorIndex) continue;
-
-		const int flags = g_hapticsUpdates.shapeFlags[i];
-
-		// unpack flags
-		int type = int(flags & eNvFlexShapeFlagTypeMask);
-
-		NvFlexCollisionGeometry shape = g_hapticsUpdates.shapeGeometry[i];
-		Vec3 shapePosition = g_hapticsUpdates.shapePositions[i];
-		Quat shapeRotation = g_hapticsUpdates.shapeRotations[i];
-
-		Vec3 collisionForce = Vec3(0.f);
-		if (type == eNvFlexShapeSphere) {
-			float calcRadius = shape.sphere.radius + g_cursorRadius;
-			Vec3 offset = g_hapticsUpdates.cursorPosition - shapePosition;
-			double length = Length(offset);
-			if (length <= calcRadius) {
-				collisionForce = Normalize(offset) * (calcRadius - length);
-			}
-		}
-		else if (type == eNvFlexShapeBox) {
-			// Convert haptic position to object space to simplify calculations
-			Vec3 calcHapticPos = g_hapticsUpdates.cursorPosition - shapePosition;
-			calcHapticPos = Inverse(shapeRotation) * calcHapticPos;
-
-			Vec3 calcScale = Vec3(shape.box.halfExtents) + Vec3(g_cursorRadius);
-
-			// Define face normals for each side of the cube
-			Vec3 faceNormals[6] = { Vec3(0.f, 0.f, 1.f), Vec3(0.f, 0.f, -1.f), Vec3(0.f, 1.f, 0.f),
-				Vec3(0.f, -1.f, 0.f), Vec3(1.f, 0.f, 0.f), Vec3(-1.f, 0.f, 0.f) };
-
-			// Calculate face to pos vectors and distances, and determine if pos is in bounds
-			bool inBounds = true;
-			float minDist = FLT_MAX;
-			Vec3 minVector = Vec3(0.f);
-			for (size_t i = 0; i < 6; i++) {
-				Vec3 normal = faceNormals[i];
-				Vec3 scaledNormal = normal * calcScale;
-				Vec3 point = scaledNormal;
-				Vec3 faceToPos = ProjectPointOnPlane(calcHapticPos, point, normal) - calcHapticPos;
-
-				if (Dot(faceToPos, normal) > 0) {
-					float length = Length(faceToPos);
-					if (length < minDist) {
-						minDist = length;
-						minVector = faceToPos;
-					}
-				}
-				else {
-					inBounds = false;
-					break;
-				}
-			}
-
-			// Return the force vector in world space if the position is in bounds
-			if (inBounds) {
-				collisionForce = shapeRotation * minVector;
-			}
-		}
-		netForce += collisionForce;
-	}
-
-	for (size_t i = 0; i < g_params.numPlanes; ++i) {
-		Vec4 plane = Vec4(g_params.planes[i]);
-		Vec3 normal = plane;
-		Vec3 position = normal * (-plane.w + g_cursorRadius);
-
-		Vec3 faceToPos = ProjectPointOnPlane(g_hapticsUpdates.cursorPosition, position, normal) - g_hapticsUpdates.cursorPosition;
-		if (Dot(faceToPos, normal) > 0) {
-			netForce += faceToPos;
-		}
-	}
-
-	return netForce;
-}
-
 // Adapted from chai3d::cAngle
 float Angle(const Vec3& a_vector1, const Vec3& a_vector2) {
 	// compute length of vectors
@@ -3188,45 +3104,8 @@ float Angle(const Vec3& a_vector1, const Vec3& a_vector2) {
 
 	return acos(result);
 }
-/*Vec3 devicePosition, const float multiplier*/
+
 void UpdateWorkspace(const cVector3d position) {
-	/*devicePosition /= multiplier;
-
-	// Define the movement sphere parameters
-	constexpr float radius = 0.03;
-	constexpr float maxDist = 0.045 - radius;
-	constexpr float speed = 0.0001;
-	constexpr float distScale = 4;
-
-	// Modify the movement vector. The z-axis needs to be moved forward
-	// slightly so that the forward movement can be equal to the backward
-	// movement. Then the z-axis needs to be scaled so that it can be
-	// equal to the x and y axes
-	Vec3 scaledPosition = devicePosition;
-	scaledPosition.z = (-0.0035f + scaledPosition.z) * 1.2f;
-
-	// Joystick simulation force
-	constexpr float stiffness = 5.f;
-	Vec3 moveForce = Vec3(0.f);
-
-	// Move the device position when it leaves the movement sphere
-	if (Length(scaledPosition) > radius) {
-		// Calculate the direction and distance to move the device
-		const Vec3 norm = Normalize(scaledPosition);
-		const float dist = Min(Length(scaledPosition) - radius, maxDist) / maxDist;
-		const float scaledDist = pow(dist, distScale) * speed;
-		g_hapticsUpdates.cursorOffset = g_hapticsUpdates.cursorOffset + (norm * scaledDist);
-
-		// Update joystick simulation force
-		moveForce = stiffness * dist * -norm;
-	}
-
-	g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
-	g_hapticsUpdates.cursorPosition = g_hapticsUpdates.cursorOffset*multiplier + devicePosition*multiplier;
-
-	// Update the camera
-	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);*/
-
 	// Define the movement sphere parameters
 	constexpr double radius = 0.03;
 	constexpr double maxDist = 0.045 - radius;
@@ -3258,13 +3137,12 @@ void UpdateWorkspace(const cVector3d position) {
 
 	// Update the tool based on the hardware
 	g_chaiTool->updateFromDevice();
-	g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
+
+	// Update the cursor position based on the tool
 	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->getHapticPoint(0)->getGlobalPosProxy());
 
 	// Update the camera
 	g_camPos = FromChai(g_chaiTool->getLocalPos()) + Vec3(0.f, 2.f, 7.f);
-
-	//cout << g_chaiTool->getLocalPos().str() << endl;
 }
 
 void updateHaptics(void)
@@ -3312,7 +3190,6 @@ void updateHaptics(void)
 		/////////////////////////////////////////////////////////////////////
 
 		Vec3 particleForce = Vec3(0.f);
-		Vec3 devicePosition = FromChai(position) * g_chaiScaleFactor;
 		Vec3 deviceVelocity = FromChai(velocity);
 		
 		if (g_scene > -1) {
@@ -3342,13 +3219,10 @@ void updateHaptics(void)
 				Vec3 dampingForce = -0.5f * deviceVelocity;
 				particleForce += dampingForce;
 
-				// Shape collision forces
-				//constexpr float stiffness = 100.f; // 100.f;
-				//particleForce += stiffness * GetCollisionForces(cursorIndex);
-
-				//g_chaiTool->setDeviceLocalPos(ToChai(g_hapticsUpdates.cursorPosition));
+				// Update the chai3d world
 				g_chaiWorld->computeGlobalPositions();
 
+				// Compute collision forces
 				if (g_meshMutex.try_lock()) {
 					g_chaiTool->computeInteractionForces();
 					g_meshMutex.unlock();
@@ -3362,9 +3236,6 @@ void updateHaptics(void)
 
 		g_chaiTool->addDeviceLocalForce(ToChai(particleForce));
 		g_chaiTool->applyToDevice();
-
-		// send computed force, torque, and gripper force to haptic device
-		//g_hapticDevice->setForceAndTorqueAndGripperForce(force, torque, gripperForce);
 
 		// signal frequency counter
 		g_freqCounterHaptics.signal(1);
