@@ -1341,82 +1341,6 @@ void SaveContacts() {
 	g_hapticsUpdates.contactCounts.resize(contactCounts.size());
 	contactCounts.copyto(&g_hapticsUpdates.contactCounts[0], contactCounts.size());
 	g_mutex.unlock();
-	//Vec3 netForce;
-
-	//Vec3 cursorPosition = g_buffers->shapePositions[cursorIndex];
-	//
-	//float x = 0.f;
-	//for (int i = 0; i < int(g_buffers->activeIndices.size()); ++i) {
-	//	int particleIndex = g_buffers->activeIndices[i];
-	//	const int contactIndex = contactIndices[particleIndex];
-	//	const unsigned int count = contactCounts[contactIndex];
-
-	//	const float scale = 0.1f;
-
-	//	for (unsigned int c = 0; c < count; ++c)
-	//	{
-	//		int index = contactIndex*maxContactsPerParticle + c;
-	//		Vec4 plane = contactPlanes[index];
-	//		Vec4 contactVelocity = contactVelocities[index];
-
-
-	//		/*DrawLine(Vec3(g_buffers->positions[g_buffers->activeIndices[i]]),
-	//			Vec3(g_buffers->positions[g_buffers->activeIndices[i]]) + Vec3(plane)*scale,
-	//			Vec4(0.0f, 1.0f, 0.0f, 0.0f));*/
-
-	//		if (contactVelocity.w == cursorIndex) {
-	//			int phase = g_buffers->phases[particleIndex];
-	//			bool fluid = phase & eNvFlexPhaseFluid;
-	//			float mult = fluid ? 0.2f : 1.f;
-
-	//			Vec3 velocity = g_buffers->velocities[particleIndex];
-	//			float speed = Length(velocity);
-	//			Vec3 prevVelocity = g_hapticsUpdates.prevVelocities[particleIndex];
-	//			Vec4 particle = g_buffers->positions[particleIndex];
-	//			Vec3 position = particle;
-	//			//float mass = (1.f / particle.w) / 100;
-	//			//cout << mass << endl;
-	//			float mass = 0.00075;
-
-	//			Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
-	//			Vec3 exertedForce = mass * acceleration;
-
-
-	//			//mult += (speed / 10.f);
-
-	//			//Vec3 cursorToPosition = (position - cursorPosition);
-
-	//			//Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * g_cursorRadius;
-
-	//			//Vec3 force = -(position - cursorPosition) * mult;
-	//			//x++;
-
-	//			bool particleMovingAwayFromCursor = Dot3(velocity, cursorPosition - position) < 0;
-	//			if (!particleMovingAwayFromCursor) {
-	//				exertedForce *= 0.5f;
-	//			}
-
-	//			//if (Dot3(velocity, cursorPosition - position) < 0) {
-	//			//	Vec3 deltaVelocity = velocity - prevVelocity;
-	//			//	Vec3 acceleration = deltaVelocity / g_realdt;
-	//			//	//acceleration -= Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
-	//			//	//force += mass * acceleration * 0.05f;
-	//			//}
-
-	//			netForce += -exertedForce;// *0.05f;
-	//		}
-	//	}
-	//}
-
-	///*Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.cursorPosition) / g_realdt;
-	//Vec3 dampingForce = -0.2f * deviceVelocity;
-
-	//netForce += dampingForce;*/
-
-
-	//// damping:
-	//// F_d = -v*v*c
-	//g_hapticsUpdates.force = netForce;
 
 	if (g_hapticsUpdates.updated) {
 		g_hapticsUpdates.updated = false;
@@ -1439,24 +1363,6 @@ void UpdateCursor() {
 	if (cursorIndex < 0) return;
 
 	const int maxContactsPerParticle = 6;
-
-	//NvFlexVector<Vec4> contactPlanes(g_flexLib, g_buffers->positions.size()*maxContactsPerParticle);
-	//NvFlexVector<Vec4> contactVelocities(g_flexLib, g_buffers->positions.size()*maxContactsPerParticle);
-	//NvFlexVector<int> contactIndices(g_flexLib, g_buffers->positions.size());
-	//NvFlexVector<unsigned int> contactCounts(g_flexLib, g_buffers->positions.size());
-
-	//NvFlexGetContacts(g_solver, contactPlanes.buffer, contactVelocities.buffer, contactIndices.buffer, contactCounts.buffer);
-
-	//// ensure transfers have finished
-	//contactPlanes.map();
-	//contactVelocities.map();
-	//contactIndices.map();
-	//contactCounts.map();
-
-	//contactPlanes.copyto(&g_hapticsUpdates.contactPlanes[0], contactPlanes.size());
-	//contactVelocities.copyto(&g_hapticsUpdates.contactVelocities[0], contactVelocities.size());
-	//contactIndices.copyto(&g_hapticsUpdates.contactIndices[0], contactIndices.size());
-	//contactCounts.copyto(&g_hapticsUpdates.contactCounts[0], contactCounts.size());
 
 	Vec3 netForce;
 
@@ -1537,21 +1443,6 @@ void UpdateCursor() {
 	// damping:
 	// F_d = -v*v*c
 	g_hapticsUpdates.force = netForce;
-
-	/*if (g_hapticsUpdates.updated) {
-		g_hapticsUpdates.updated = false;
-
-		g_buffers->shapePrevPositions[cursorIndex] = g_buffers->shapePositions[cursorIndex];
-
-		g_buffers->shapePositions[cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
-		g_buffers->shapePositions[cursorIndex].y = g_hapticsUpdates.cursorPosition.y;
-		g_buffers->shapePositions[cursorIndex].z = g_hapticsUpdates.cursorPosition.z;
-
-		g_shapesChanged = true;
-
-		g_hapticsUpdates.velocity = Vec3(0.f);
-		g_hapticsUpdates.position = g_buffers->shapePositions[cursorIndex];
-	}*/
 }
 
 void RenderScene()
