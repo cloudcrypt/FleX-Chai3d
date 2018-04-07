@@ -3232,7 +3232,7 @@ void updateHaptics(void)
 
 		constexpr float multiplier = 100.f;
 
-		Vec3 particleForce;
+		Vec3 particleForce = Vec3(0.f);
 		Vec3 devicePosition = FromChai(position) * multiplier;
 		Vec3 deviceVelocity = FromChai(velocity);
 		
@@ -3253,15 +3253,14 @@ void updateHaptics(void)
 				}
 
 				// Discrete-time low-pass filter
-				float Tf = 0.1f;
+				float Tf = 0.05f;
 				float a = deltaTick / (Tf);
 				float K = 1.f;
 				particleForce = ((1.f - a) * g_hapticsUpdates.lastForce) + (K * a * g_hapticsUpdates.force);
 				g_hapticsUpdates.lastForce = particleForce;
 
 				// Add damping
-				//Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.prevCursorPosition) / g_hapticsUpdates.dt;
-				Vec3 dampingForce = -1.f * deviceVelocity;
+				Vec3 dampingForce = -0.5f * deviceVelocity;
 				particleForce += dampingForce;
 
 				constexpr float stiffness = 100.f; // 100.f;
