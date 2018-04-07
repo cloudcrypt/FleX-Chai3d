@@ -213,6 +213,11 @@ struct HapticsUpdate {
 	Vec3 force;
 
 	Vec3 lastForceApplied;
+
+	vector<NvFlexCollisionGeometry> shapeGeometry;
+	vector<Vec4> shapePositions;
+	vector<Quat> shapeRotations;
+	vector<int> shapeFlags;
 };
 
 struct SimBuffers
@@ -645,6 +650,11 @@ void Init(int scene, bool centerCamera = true)
 
 	// map during initialization
 	MapBuffers(g_buffers);
+
+	g_hapticsUpdates.shapeFlags.resize(0);
+	g_hapticsUpdates.shapeGeometry.resize(0);
+	g_hapticsUpdates.shapePositions.resize(0);
+	g_hapticsUpdates.shapeRotations.resize(0);
 
 	g_buffers->positions.resize(0);
 	g_buffers->velocities.resize(0);
@@ -1276,91 +1286,6 @@ void UpdateScene()
 	g_scenes[g_scene]->Update();
 }
 
-Vec3 Project(const Vec3& v, const Vec3& n) {
-	return (Dot(v, n) / (Length(n)*Length(n))) * n;
-}
-
-Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Vec3& a_planeNormal) {
-	return a_point - Project(a_point - a_planePoint, a_planeNormal);
-}
-
-Vec3 GetCollisionForces(int cursorIndex) {
-	Vec3 netForce = Vec3(0.f);
-
-	for (int i = 0; i < g_buffers->shapeFlags.size(); ++i)
-	{
-		if (i == cursorIndex) continue;
-
-		const int flags = g_buffers->shapeFlags[i];
-
-		// unpack flags
-		int type = int(flags & eNvFlexShapeFlagTypeMask);
-
-		NvFlexCollisionGeometry shape = g_buffers->shapeGeometry[i];
-		Vec3 shapePosition = g_buffers->shapePositions[i];
-		Quat shapeRotation = g_buffers->shapeRotations[i];
-
-		Vec3 collisionForce = Vec3(0.f);
-		if (type == eNvFlexShapeSphere) {
-			float calcRadius = shape.sphere.radius + g_cursorRadius;
-			Vec3 offset = g_hapticsUpdates.cursorPosition - shapePosition;
-			double length = Length(offset);
-			if (length <= calcRadius) {
-				collisionForce = Normalize(offset) * (calcRadius - length);
-			}
-		} else if (type == eNvFlexShapeBox) {
-			// Convert haptic position to object space to simplify calculations
-			//Matrix33 transform = Matrix33(shapeRotation);
-			//bool success;
-			//Matrix33 inverseTransform = Inverse(transform, success);
-
-			Vec3 calcHapticPos = g_hapticsUpdates.cursorPosition - shapePosition;
-			calcHapticPos = Inverse(shapeRotation) * calcHapticPos;
-			
-			Vec3 calcScale = Vec3(
-				shape.box.halfExtents[0] + g_cursorRadius,
-				shape.box.halfExtents[1] + g_cursorRadius,
-				shape.box.halfExtents[2] + g_cursorRadius
-			);
-
-			// Define face normals for each side of the cube
-			Vec3 faceNormals[6] = { Vec3(0.f, 0.f, 1.f), Vec3(0.f, 0.f, -1.f), Vec3(0.f, 1.f, 0.f),
-				Vec3(0.f, -1.f, 0.f), Vec3(1.f, 0.f, 0.f), Vec3(-1.f, 0.f, 0.f) };
-
-			// Calculate face to pos vectors and distances, and determine if pos is in bounds
-			bool inBounds = true;
-			float minDist = FLT_MAX;
-			Vec3 minVector = Vec3(0.f);
-			for (size_t i = 0; i < 6; i++) {
-				Vec3 normal = faceNormals[i];
-				Vec3 scaledNormal = normal * calcScale;
-				Vec3 point = scaledNormal;
-				Vec3 faceToPos = ProjectPointOnPlane(calcHapticPos, point, normal) - calcHapticPos;
-
-				if (Dot(faceToPos, normal) > 0) {
-					float length = Length(faceToPos);
-					if (length < minDist) {
-						minDist = length;
-						minVector = faceToPos;
-					}
-				} else {
-					inBounds = false;
-					break;
-				}
-			}
-
-			// Return the force vector in world space if the position is in bounds
-			if (inBounds) {
-				collisionForce = shapeRotation * minVector;
-			}
-		}
-		netForce += collisionForce;
-	}
-
-	return netForce;
-}
-
-//Vec3 g_lastNetVelocity;
 void UpdateCursor() {
 	int cursorIndex = g_scenes[g_scene]->mCursorIndex;
 	if (cursorIndex < 0) return;
@@ -1451,11 +1376,6 @@ void UpdateCursor() {
 	Vec3 dampingForce = -0.2f * deviceVelocity;
 
 	netForce += dampingForce;*/
-
-
-
-	constexpr float stiffness = 100.f; // 100.f;
-	netForce += stiffness * GetCollisionForces(cursorIndex);
 
 
 	// damping:
@@ -2302,10 +2222,22 @@ void UpdateFrame()
 		UpdateCursor();
 	}
 
-	// copy g_buffers->velocities to g_buffers->prevVelocities
-	// TODO: more efficient data copy
-	for (int i = 0; i < g_buffers->velocities.size(); ++i) {
-		g_buffers->prevVelocities[i] = g_buffers->velocities[i];
+	// Copy current velocities to previous velocities
+	g_buffers->velocities.copyto(&g_buffers->prevVelocities[0], g_buffers->velocities.size());
+
+	// Copy shape data to haptics thread
+	if (g_shapesChanged) {
+		g_hapticsUpdates.shapeFlags.resize(g_buffers->shapeFlags.size());
+		g_buffers->shapeFlags.copyto(&g_hapticsUpdates.shapeFlags[0], g_hapticsUpdates.shapeFlags.size());
+
+		g_hapticsUpdates.shapeGeometry.resize(g_buffers->shapeGeometry.size());
+		g_buffers->shapeGeometry.copyto(&g_hapticsUpdates.shapeGeometry[0], g_hapticsUpdates.shapeGeometry.size());
+
+		g_hapticsUpdates.shapePositions.resize(g_buffers->shapePositions.size());
+		g_buffers->shapePositions.copyto(&g_hapticsUpdates.shapePositions[0], g_hapticsUpdates.shapePositions.size());
+
+		g_hapticsUpdates.shapeRotations.resize(g_buffers->shapeRotations.size());
+		g_buffers->shapeRotations.copyto(&g_hapticsUpdates.shapeRotations[0], g_hapticsUpdates.shapeRotations.size());
 	}
 
 	//-------------------------------------------------------------------
@@ -3039,6 +2971,99 @@ void close(void)
 	delete g_handler;
 }
 
+Vec3 Project(const Vec3& v, const Vec3& n) {
+	return (Dot(v, n) / (Length(n)*Length(n))) * n;
+}
+
+Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Vec3& a_planeNormal) {
+	return a_point - Project(a_point - a_planePoint, a_planeNormal);
+}
+
+Vec3 GetCollisionForces(int cursorIndex) {
+	Vec3 netForce = Vec3(0.f);
+
+	for (size_t i = 0; i < g_hapticsUpdates.shapeFlags.size(); ++i)
+	{
+		if (i == cursorIndex) continue;
+
+		const int flags = g_hapticsUpdates.shapeFlags[i];
+
+		// unpack flags
+		int type = int(flags & eNvFlexShapeFlagTypeMask);
+
+		NvFlexCollisionGeometry shape = g_hapticsUpdates.shapeGeometry[i];
+		Vec3 shapePosition = g_hapticsUpdates.shapePositions[i];
+		Quat shapeRotation = g_hapticsUpdates.shapeRotations[i];
+
+		Vec3 collisionForce = Vec3(0.f);
+		if (type == eNvFlexShapeSphere) {
+			float calcRadius = shape.sphere.radius + g_cursorRadius;
+			Vec3 offset = g_hapticsUpdates.cursorPosition - shapePosition;
+			double length = Length(offset);
+			if (length <= calcRadius) {
+				collisionForce = Normalize(offset) * (calcRadius - length);
+			}
+		}
+		else if (type == eNvFlexShapeBox) {
+			// Convert haptic position to object space to simplify calculations
+			//Matrix33 transform = Matrix33(shapeRotation);
+			//bool success;
+			//Matrix33 inverseTransform = Inverse(transform, success);
+
+			Vec3 calcHapticPos = g_hapticsUpdates.cursorPosition - shapePosition;
+			calcHapticPos = Inverse(shapeRotation) * calcHapticPos;
+
+			Vec3 calcScale = Vec3(shape.box.halfExtents) + Vec3(g_cursorRadius);
+
+			// Define face normals for each side of the cube
+			Vec3 faceNormals[6] = { Vec3(0.f, 0.f, 1.f), Vec3(0.f, 0.f, -1.f), Vec3(0.f, 1.f, 0.f),
+				Vec3(0.f, -1.f, 0.f), Vec3(1.f, 0.f, 0.f), Vec3(-1.f, 0.f, 0.f) };
+
+			// Calculate face to pos vectors and distances, and determine if pos is in bounds
+			bool inBounds = true;
+			float minDist = FLT_MAX;
+			Vec3 minVector = Vec3(0.f);
+			for (size_t i = 0; i < 6; i++) {
+				Vec3 normal = faceNormals[i];
+				Vec3 scaledNormal = normal * calcScale;
+				Vec3 point = scaledNormal;
+				Vec3 faceToPos = ProjectPointOnPlane(calcHapticPos, point, normal) - calcHapticPos;
+
+				if (Dot(faceToPos, normal) > 0) {
+					float length = Length(faceToPos);
+					if (length < minDist) {
+						minDist = length;
+						minVector = faceToPos;
+					}
+				}
+				else {
+					inBounds = false;
+					break;
+				}
+			}
+
+			// Return the force vector in world space if the position is in bounds
+			if (inBounds) {
+				collisionForce = shapeRotation * minVector;
+			}
+		}
+		netForce += collisionForce;
+	}
+
+	for (size_t i = 0; i < 1; ++i) {
+		Vec4 plane = Vec4(g_params.planes[i]);
+		Vec3 normal = plane;
+		Vec3 position = normal * plane.w + g_cursorRadius;
+
+		Vec3 faceToPos = ProjectPointOnPlane(g_hapticsUpdates.cursorPosition, position, normal) - g_hapticsUpdates.cursorPosition;
+		if (Dot(faceToPos, normal) > 0) {
+			netForce += faceToPos;
+		}
+	}
+
+	return netForce;
+}
+
 void updateHaptics(void)
 {
 	// simulation in now running
@@ -3126,6 +3151,11 @@ void updateHaptics(void)
 				//particleForce = (devicePosition - particlePosition) * 3000.f / multiplier;
 
 				particleForce = g_hapticsUpdates.force;
+
+
+
+				constexpr float stiffness = 100.f; // 100.f;
+				particleForce += stiffness * GetCollisionForces(cursorIndex);
 			}
 		}
 

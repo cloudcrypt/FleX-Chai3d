@@ -27,12 +27,8 @@ public:
 		g_drawPoints = false;
 		g_wireframe = false;
 		g_drawSprings = false;
-		g_drawContacts = true;
 
-		//AddSphere(2.f, Vec3(0.f, 1.f, -1.f), Quat());
-
-		for (int i = 0; i < 3; ++i)
-		{
+		for (int i = 0; i < 3; ++i) {
 			// box
 			CreateParticleShape(GetFilePathByPlatform("../../data/box.ply").c_str(), Vec3(0.0f, 3.5f, -i*2.0f), 0.5f, 0.0f, radius, 0.0f, 1.0f, true, 1.0f, NvFlexMakePhase(i, 0), true, 0.0f);
 
