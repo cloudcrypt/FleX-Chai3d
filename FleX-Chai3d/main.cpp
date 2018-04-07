@@ -3044,10 +3044,10 @@ Vec3 GetCollisionForces(int cursorIndex) {
 		netForce += collisionForce;
 	}
 
-	for (size_t i = 0; i < 1; ++i) {
+	for (size_t i = 0; i < g_params.numPlanes; ++i) {
 		Vec4 plane = Vec4(g_params.planes[i]);
 		Vec3 normal = plane;
-		Vec3 position = normal * plane.w + g_cursorRadius;
+		Vec3 position = normal * -plane.w + g_cursorRadius;
 
 		Vec3 faceToPos = ProjectPointOnPlane(g_hapticsUpdates.cursorPosition, position, normal) - g_hapticsUpdates.cursorPosition;
 		if (Dot(faceToPos, normal) > 0) {
