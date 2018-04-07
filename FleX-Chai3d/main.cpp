@@ -125,7 +125,12 @@ cGenericHapticDevicePtr g_hapticDevice;
 // haptic thread
 cThread* g_hapticsThread;
 
-mutex g_mutex;
+// haptic tool
+cWorld* g_chaiWorld;
+cToolCursor* g_chaiTool;
+
+mutex g_shapeMutex;
+mutex g_meshMutex;
 
 // flag to indicate if the haptic simulation currently running
 bool g_simulationRunning = false;
@@ -221,6 +226,9 @@ struct HapticsUpdate {
 	vector<Vec4> shapePositions;
 	vector<Quat> shapeRotations;
 	vector<int> shapeFlags;
+
+	vector<cMesh*> shapeMeshes;
+	vector<cMesh*> planeMeshes;
 
 	vector<Vec4> positions;
 	vector<Vec3> velocities;
@@ -421,6 +429,18 @@ SimBuffers* AllocBuffers(NvFlexLibrary* lib)
 
 void DestroyBuffers(SimBuffers* buffers)
 {
+	g_meshMutex.lock();
+	for (cMesh* mesh : g_hapticsUpdates.shapeMeshes) {
+		g_chaiWorld->removeChild(mesh);
+		delete mesh;
+	}
+
+	for (cMesh* mesh : g_hapticsUpdates.planeMeshes) {
+		g_chaiWorld->removeChild(mesh);
+		delete mesh;
+	}
+	g_meshMutex.unlock();
+
 	// particles
 	buffers->positions.destroy();
 	buffers->restPositions.destroy();
@@ -619,6 +639,16 @@ inline float sqr(float x) { return x*x; }
 #include "scenes.h"
 #include "benchmark.h"
 
+Quat QuatFromLookDirection(Vec3 direction) {
+	direction = Normalize(direction);
+	const Vec3 forward = Vec3(0.f, 0.f, 1.f);
+	const Vec3 rotAxis = Cross(forward, direction);
+	const float dot = Dot(Vec3(0.f, 0.f, 1.f), direction);
+
+	const Quat q = Quat(rotAxis, dot + 1.f);
+	return Normalize(q);
+}
+
 void Init(int scene, bool centerCamera = true)
 {
 	RandInit();
@@ -667,10 +697,14 @@ void Init(int scene, bool centerCamera = true)
 	// map during initialization
 	MapBuffers(g_buffers);
 
+	
 	g_hapticsUpdates.shapeFlags.resize(0);
 	g_hapticsUpdates.shapeGeometry.resize(0);
 	g_hapticsUpdates.shapePositions.resize(0);
 	g_hapticsUpdates.shapeRotations.resize(0);
+
+	g_hapticsUpdates.shapeMeshes.resize(0);
+	g_hapticsUpdates.planeMeshes.resize(0);
 
 	g_hapticsUpdates.positions.resize(0);
 	g_hapticsUpdates.velocities.resize(0);
@@ -896,6 +930,16 @@ void Init(int scene, bool centerCamera = true)
 	(Vec4&)g_params.planes[5] = Vec4(0.0f, -1.0f, 0.0f, g_sceneUpper.y);
 
 	g_wavePlane = g_params.planes[2][3];
+
+	for (size_t i = 0; i < 1; ++i) {
+		cMesh* mesh = new cMesh();
+		Vec4 plane = g_params.planes[i];
+		Vec3 normal = Vec3(plane);
+		Vec3 position = normal * -plane.w;
+		cCreatePlane(mesh, 1000.0, 1000.0);
+		Quat rotation = QuatFromLookDirection(normal) * QuatFromAxisAngle(Vec3(1.f, 0.f, 0.f), DegToRad(90.f));
+		AddChaiMesh(mesh, position, rotation, 100.0, g_hapticsUpdates.planeMeshes);
+	}
 
 	g_buffers->diffusePositions.resize(g_maxDiffuseParticles);
 	g_buffers->diffuseVelocities.resize(g_maxDiffuseParticles);
@@ -1331,7 +1375,7 @@ void SaveContacts() {
 	contactIndices.map();
 	contactCounts.map();
 
-	g_mutex.lock();
+	g_shapeMutex.lock();
 	g_hapticsUpdates.contactPlanes.resize(contactPlanes.size());
 	contactPlanes.copyto(&g_hapticsUpdates.contactPlanes[0], contactPlanes.size());
 
@@ -1343,7 +1387,7 @@ void SaveContacts() {
 
 	g_hapticsUpdates.contactCounts.resize(contactCounts.size());
 	contactCounts.copyto(&g_hapticsUpdates.contactCounts[0], contactCounts.size());
-	g_mutex.unlock();
+	g_shapeMutex.unlock();
 
 	if (g_hapticsUpdates.updated) {
 		g_hapticsUpdates.updated = false;
@@ -2293,6 +2337,14 @@ void UpdateFrame()
 
 		g_hapticsUpdates.shapeRotations.resize(g_buffers->shapeRotations.size());
 		g_buffers->shapeRotations.copyto(&g_hapticsUpdates.shapeRotations[0], g_hapticsUpdates.shapeRotations.size());
+
+		for (size_t i = 0; i < g_hapticsUpdates.shapeMeshes.size(); ++i) {
+			cMesh* mesh = g_hapticsUpdates.shapeMeshes[i];
+			if (mesh) {
+				mesh->setLocalPos(ToChai(Vec3(g_buffers->shapePositions[i])));
+				mesh->setLocalRot(ToChaiRotMat(g_buffers->shapeRotations[i]));
+			}
+		}
 	}
 
 	//-------------------------------------------------------------------
@@ -3174,14 +3226,6 @@ void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
 	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);
 }
 
-Vec3 FromChai(const cVector3d& a_vector) {
-	return Vec3(a_vector.y(), a_vector.z(), a_vector.x());
-}
-
-cVector3d ToChai(const Vec3& a_vector) {
-	return cVector3d(a_vector.z, a_vector.x, a_vector.y);
-}
-
 void updateHaptics(void)
 {
 	// simulation in now running
@@ -3226,15 +3270,13 @@ void updateHaptics(void)
 		// UPDATE 3D CURSOR MODEL
 		/////////////////////////////////////////////////////////////////////
 
-		// update position and orienation of cursor
-		//scene->m_cursor->SetPosition(scene->m_cursorOffset + position);
-		//cursor->setLocalRot(rotation);
-
 		constexpr float multiplier = 100.f;
 
 		Vec3 particleForce = Vec3(0.f);
 		Vec3 devicePosition = FromChai(position) * multiplier;
 		Vec3 deviceVelocity = FromChai(velocity);
+		
+		//g_chaiTool->updateFromDevice();
 		
 		if (g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
@@ -3246,13 +3288,13 @@ void updateHaptics(void)
 				UpdateWorkspace(devicePosition, multiplier);
 				
 				// Update cursor based on connected particles
-				bool success = g_mutex.try_lock();
-				if (success) {
+				if (g_shapeMutex.try_lock()) {
 					UpdateCursor();
-					g_mutex.unlock();
+					g_shapeMutex.unlock();
 				}
 
 				// Discrete-time low-pass filter
+				// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"
 				float Tf = 0.05f;
 				float a = deltaTick / (Tf);
 				float K = 1.f;
@@ -3264,24 +3306,35 @@ void updateHaptics(void)
 				particleForce += dampingForce;
 
 				constexpr float stiffness = 100.f; // 100.f;
-				particleForce += stiffness * GetCollisionForces(cursorIndex);
+				//particleForce += stiffness * GetCollisionForces(cursorIndex);
 			}
 		}
+
+		g_chaiTool->setDeviceLocalPos(ToChai(g_hapticsUpdates.cursorPosition));
+		g_chaiWorld->computeGlobalPositions();
 
 		/////////////////////////////////////////////////////////////////////
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
 
 		cVector3d force = ToChai(particleForce);
-		cVector3d torque(0, 0, 0);
-		double gripperForce = 0.0;
+		//cVector3d torque(0, 0, 0);
+		//double gripperForce = 0.0;
+
+		if (g_meshMutex.try_lock()) {
+			g_chaiTool->computeInteractionForces();
+			g_meshMutex.unlock();
+		}
 
 		/////////////////////////////////////////////////////////////////////
 		// APPLY FORCES
 		/////////////////////////////////////////////////////////////////////
 
+		g_chaiTool->addDeviceLocalForce(force);
+		g_chaiTool->applyToDevice();
+
 		// send computed force, torque, and gripper force to haptic device
-		g_hapticDevice->setForceAndTorqueAndGripperForce(force, torque, gripperForce);
+		//g_hapticDevice->setForceAndTorqueAndGripperForce(force, torque, gripperForce);
 
 		// signal frequency counter
 		g_freqCounterHaptics.signal(1);
@@ -3432,7 +3485,16 @@ int main(int argc, char* argv[])
 	// if the device has a gripper, enable the gripper to simulate a user switch
 	g_hapticDevice->setEnableGripperUserSwitch(true);
 
+	g_chaiWorld = new cWorld();
 
+	g_chaiTool = new cToolCursor(g_chaiWorld);
+	g_chaiTool->setWorkspaceScaleFactor(100.0);
+	g_chaiTool->setHapticDevice(g_hapticDevice);
+	g_chaiTool->setRadius(g_cursorRadius);
+	g_chaiTool->enableDynamicObjects(true);
+	g_chaiTool->start();
+
+	g_chaiWorld->addChild(g_chaiTool);
 
 
 	

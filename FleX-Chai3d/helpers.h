@@ -34,6 +34,46 @@
 #pragma warning(disable: 4267)  // conversion from 'size_t' to 'int', possible loss of data
 #endif
 
+Vec3 FromChai(const cVector3d& a_vector) {
+	return Vec3(a_vector.y(), a_vector.z(), a_vector.x());
+}
+
+cVector3d ToChai(const Vec3& a_vector) {
+	return cVector3d(a_vector.z, a_vector.x, a_vector.y);
+}
+
+Vec3 FromChaiDirect(const cVector3d& a_vector) {
+	return Vec3(a_vector.x(), a_vector.y(), a_vector.z());
+}
+
+cVector3d ToChaiDirect(const Vec3& a_vector) {
+	return cVector3d(a_vector.x, a_vector.y, a_vector.z);
+}
+
+cQuaternion ToChai(const Quat& a_quat) {
+	return cQuaternion(a_quat.w, a_quat.z, a_quat.x, a_quat.y);
+}
+
+cMatrix3d ToChaiRotMat(const Quat& a_quat) {
+	cMatrix3d rotMat;
+	ToChai(a_quat).toRotMat(rotMat);
+	return rotMat;
+}
+
+void AddChaiMesh(cMesh* a_mesh, const Vec3& position, const Quat& rotation, const double& stiffness = 100.0, vector<cMesh*>& meshList = g_hapticsUpdates.shapeMeshes) {
+	// If a non-null mesh was added, initialize it
+	if (a_mesh) {
+		a_mesh->setLocalPos(ToChai(position));
+		a_mesh->setLocalRot(ToChaiRotMat(rotation));
+		a_mesh->setStiffness(stiffness);
+		a_mesh->createAABBCollisionDetector(g_cursorRadius);
+		g_chaiWorld->addChild(a_mesh);
+	}
+
+	// Push it to the list (even if it is null)
+	meshList.push_back(a_mesh);
+}
+
 float SampleSDF(const float* sdf, int dim, int x, int y, int z)
 {
 	assert(x < dim && x >= 0);
@@ -439,7 +479,7 @@ void SkinMesh()
 	}
 }
 
-void AddBox(Vec3 halfEdge = Vec3(2.0f), Vec3 center=Vec3(0.0f), Quat quat=Quat(), bool dynamic=false, int channels=eNvFlexPhaseShapeChannelMask)
+void AddBox(Vec3 halfEdge = Vec3(2.0f), Vec3 center=Vec3(0.0f), Quat quat=Quat(), bool dynamic=false, int channels=eNvFlexPhaseShapeChannelMask, bool createChaiMesh = true)
 {
 	// transform
 	g_buffers->shapePositions.push_back(Vec4(center.x, center.y, center.z, 0.0f));
@@ -455,6 +495,14 @@ void AddBox(Vec3 halfEdge = Vec3(2.0f), Vec3 center=Vec3(0.0f), Quat quat=Quat()
 
 	g_buffers->shapeGeometry.push_back(geo);
 	g_buffers->shapeFlags.push_back(NvFlexMakeShapeFlagsWithChannels(eNvFlexShapeBox, dynamic, channels));
+
+	cMesh* mesh = nullptr;
+	if (createChaiMesh) {
+		mesh = new cMesh();
+		cVector3d edge = ToChai(halfEdge) * 2.f;
+		cCreateBox(mesh, edge.x(), edge.y(), edge.z());
+	}
+	AddChaiMesh(mesh, center, quat);
 }
 
 // helper that creates a plinth whose center matches the particle bounds
@@ -469,7 +517,7 @@ void AddPlinth()
 	AddBox(Vec3(2.0f, 0.5f, 2.0f), center);
 }
 
-void AddSphere(float radius, Vec3 position, Quat rotation, bool dynamic=false)
+void AddSphere(float radius, Vec3 position, Quat rotation, bool dynamic=false, bool createChaiMesh=true)
 {
 	NvFlexCollisionGeometry geo;
 	geo.sphere.radius = radius;
@@ -483,6 +531,13 @@ void AddSphere(float radius, Vec3 position, Quat rotation, bool dynamic=false)
 
 	int flags = NvFlexMakeShapeFlags(eNvFlexShapeSphere, dynamic);
 	g_buffers->shapeFlags.push_back(flags);
+
+	cMesh* mesh = nullptr;
+	if (createChaiMesh) {
+		mesh = new cMesh();
+		cCreateSphere(mesh, radius);
+	}
+	AddChaiMesh(mesh, position, rotation);
 }
 
 // creates a capsule aligned to the local x-axis with a given radius
@@ -502,6 +557,8 @@ void AddCapsule(float radius, float halfHeight, Vec3 position, Quat rotation)
 
 	int flags = NvFlexMakeShapeFlags(eNvFlexShapeCapsule, false);
 	g_buffers->shapeFlags.push_back(flags);
+
+	AddChaiMesh(nullptr, position, rotation);
 }
 
 void CreateSDF(const Mesh* mesh, uint32_t dim, Vec3 lower, Vec3 upper, float* sdf)
@@ -530,7 +587,7 @@ void CreateSDF(const Mesh* mesh, uint32_t dim, Vec3 lower, Vec3 upper, float* sd
 }
 
 
-void AddRandomConvex(int numPlanes, Vec3 position, float minDist, float maxDist, Vec3 axis, float angle)
+void AddRandomConvex(int numPlanes, Vec3 position, float minDist, float maxDist, Vec3 axis, float angle, bool createChaiMesh = true)
 {
 	const int maxPlanes = 12;
 
@@ -564,8 +621,9 @@ void AddRandomConvex(int numPlanes, Vec3 position, float minDist, float maxDist,
 		planes.push_back(plane);
 	}
 
+	Quat rotation = QuatFromAxisAngle(axis, angle);
 	g_buffers->shapePositions.push_back(Vec4(position.x, position.y, position.z, 0.0f));
-	g_buffers->shapeRotations.push_back(QuatFromAxisAngle(axis, angle));
+	g_buffers->shapeRotations.push_back(rotation);
 
 	g_buffers->shapePrevPositions.push_back(g_buffers->shapePositions.back());
 	g_buffers->shapePrevRotations.push_back(g_buffers->shapeRotations.back());
@@ -603,6 +661,8 @@ void AddRandomConvex(int numPlanes, Vec3 position, float minDist, float maxDist,
 	// create render mesh for convex
 	Mesh renderMesh;
 
+	cMesh* chaiMesh = createChaiMesh ? new cMesh() : nullptr;
+
 	for (uint32_t j = 0; j < builder.mIndices.size(); j += 3)
 	{
 		uint32_t a = builder.mIndices[j + 0];
@@ -625,11 +685,24 @@ void AddRandomConvex(int numPlanes, Vec3 position, float minDist, float maxDist,
 		renderMesh.m_indices.push_back(startIndex+0);
 		renderMesh.m_indices.push_back(startIndex+1);
 		renderMesh.m_indices.push_back(startIndex+2);
+
+		if (createChaiMesh) {
+			chaiMesh->newTriangle(
+				ToChai(builder.mVertices[a]),
+				ToChai(builder.mVertices[b]),
+				ToChai(builder.mVertices[c]),
+				ToChai(n),
+				ToChai(n),
+				ToChai(n)
+			);
+		}
 	}
 
 	// insert into the global mesh list
 	GpuMesh* gpuMesh = CreateGpuMesh(&renderMesh);
 	g_convexes[mesh] = gpuMesh;
+
+	AddChaiMesh(chaiMesh, position, rotation);
 }
 
 void CreateRandomBody(int numPlanes, Vec3 position, float minDist, float maxDist, Vec3 axis, float angle, float invMass, int phase, float stiffness)
@@ -731,7 +804,7 @@ NvFlexTriangleMeshId CreateTriangleMesh(Mesh* m)
 	return flexMesh;
 }
 
-void AddTriangleMesh(NvFlexTriangleMeshId mesh, Vec3 translation, Quat rotation, Vec3 scale)
+void AddTriangleMesh(NvFlexTriangleMeshId mesh, Vec3 translation, Quat rotation, Vec3 scale, bool createChaiMesh = true)
 {
 	Vec3 lower, upper;
 	NvFlexGetTriangleMeshBounds(g_flexLib, mesh, lower, upper);
@@ -748,6 +821,8 @@ void AddTriangleMesh(NvFlexTriangleMeshId mesh, Vec3 translation, Quat rotation,
 	g_buffers->shapePrevRotations.push_back(Quat(rotation));
 	g_buffers->shapeGeometry.push_back((NvFlexCollisionGeometry&)geo);
 	g_buffers->shapeFlags.push_back(NvFlexMakeShapeFlags(eNvFlexShapeTriangleMesh, false));
+
+	AddChaiMesh(nullptr, translation, rotation);
 }
 
 NvFlexDistanceFieldId CreateSDF(const char* meshFile, int dim, float margin = 0.1f, float expand = 0.0f)
@@ -811,7 +886,7 @@ NvFlexDistanceFieldId CreateSDF(const char* meshFile, int dim, float margin = 0.
 	return sdf;
 }
 
-void AddSDF(NvFlexDistanceFieldId sdf, Vec3 translation, Quat rotation, float width)
+void AddSDF(NvFlexDistanceFieldId sdf, Vec3 translation, Quat rotation, float width, bool createChaiMesh = true)
 {
 	NvFlexCollisionGeometry geo;
 	geo.sdf.field = sdf;
@@ -823,6 +898,8 @@ void AddSDF(NvFlexDistanceFieldId sdf, Vec3 translation, Quat rotation, float wi
 	g_buffers->shapePrevRotations.push_back(Quat(rotation));
 	g_buffers->shapeGeometry.push_back((NvFlexCollisionGeometry&)geo);
 	g_buffers->shapeFlags.push_back(NvFlexMakeShapeFlags(eNvFlexShapeSDF, false));
+
+	AddChaiMesh(nullptr, translation, rotation);
 }
 
 inline int GridIndex(int x, int y, int dx) { return y*dx + x; }

@@ -44,7 +44,7 @@ public:
 	}
 
 	void CreateCursor() {
-		AddSphere(g_cursorRadius, Vec3(0.f, 0.f, 0.f), Quat(), true);
+		AddSphere(g_cursorRadius, Vec3(0.f, 0.f, 0.f), Quat(), true, false);
 		/*Mesh* bowl = ImportMesh(GetFilePathByPlatform("../../data/bowl.obj").c_str());
 		bowl->Normalize(2.0f);
 		bowl->CalculateNormals();
