@@ -639,14 +639,16 @@ inline float sqr(float x) { return x*x; }
 #include "scenes.h"
 #include "benchmark.h"
 
-Quat QuatFromLookDirection(Vec3 direction) {
-	direction = Normalize(direction);
-	const Vec3 forward = Vec3(0.f, 0.f, 1.f);
-	const Vec3 rotAxis = Cross(forward, direction);
-	const float dot = Dot(Vec3(0.f, 0.f, 1.f), direction);
+void AddChaiPlane(int index, Quat rotation) {
+	if (index >= g_params.numPlanes) return;
 
-	const Quat q = Quat(rotAxis, dot + 1.f);
-	return Normalize(q);
+	Vec4 plane = g_params.planes[index];
+	Vec3 normal = Vec3(plane);
+	Vec3 position = normal * -plane.w;
+
+	cMesh* mesh = new cMesh();
+	cCreatePlane(mesh, 1000.0, 1000.0);
+	AddChaiMesh(mesh, position, rotation, 100.0, g_hapticsUpdates.planeMeshes);
 }
 
 void Init(int scene, bool centerCamera = true)
@@ -931,15 +933,13 @@ void Init(int scene, bool centerCamera = true)
 
 	g_wavePlane = g_params.planes[2][3];
 
-	for (size_t i = 0; i < 1; ++i) {
-		cMesh* mesh = new cMesh();
-		Vec4 plane = g_params.planes[i];
-		Vec3 normal = Vec3(plane);
-		Vec3 position = normal * -plane.w;
-		cCreatePlane(mesh, 1000.0, 1000.0);
-		Quat rotation = QuatFromLookDirection(normal) * QuatFromAxisAngle(Vec3(1.f, 0.f, 0.f), DegToRad(90.f));
-		AddChaiMesh(mesh, position, rotation, 100.0, g_hapticsUpdates.planeMeshes);
-	}
+	AddChaiPlane(0, Quat());
+	AddChaiPlane(1, QuatFromAxisAngle(Vec3(1.f, 0.f, 0.f), DegToRad(90.f)));
+	AddChaiPlane(2, QuatFromAxisAngle(Vec3(0.f, 0.f, -1.f), DegToRad(90.f)));
+	AddChaiPlane(3, QuatFromAxisAngle(Vec3(0.f, 0.f, 1.f), DegToRad(90.f)));
+	AddChaiPlane(4, QuatFromAxisAngle(Vec3(-1.f, 0.f, 0.f), DegToRad(90.f)));
+	AddChaiPlane(5, QuatFromAxisAngle(Vec3(1.f, 0.f, 0.f), DegToRad(180.f)));
+
 
 	g_buffers->diffusePositions.resize(g_maxDiffuseParticles);
 	g_buffers->diffuseVelocities.resize(g_maxDiffuseParticles);
