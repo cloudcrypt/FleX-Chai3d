@@ -1413,30 +1413,36 @@ void UpdateCursor() {
 				Vec3 prevVelocity = g_buffers->prevVelocities[particleIndex];
 				Vec4 particle = g_buffers->positions[particleIndex];
 				Vec3 position = particle;
-				float mass = 1.f / particle.w;
+				//float mass = (1.f / particle.w) / 100;
+				//cout << mass << endl;
+				float mass = 0.00075;
 
-				mult += (speed / 10.f);
+				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
+				Vec3 exertedForce = mass * acceleration;
 
-				Vec3 cursorToPosition = (position - cursorPosition);
 
-				Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * g_cursorRadius;
+				//mult += (speed / 10.f);
 
-				Vec3 force = -(position - cursorPosition) * mult;
-				x++;
+				//Vec3 cursorToPosition = (position - cursorPosition);
+
+				//Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * g_cursorRadius;
+
+				//Vec3 force = -(position - cursorPosition) * mult;
+				//x++;
 
 				bool particleMovingAwayFromCursor = Dot3(velocity, cursorPosition - position) < 0;
-				if (particleMovingAwayFromCursor) {
-					force *= 0.5f;
+				if (!particleMovingAwayFromCursor) {
+					exertedForce *= 0.5f;
 				}
 
-				if (Dot3(velocity, cursorPosition - position) < 0) {
-					Vec3 deltaVelocity = velocity - prevVelocity;
-					Vec3 acceleration = deltaVelocity / g_realdt;
-					//acceleration -= Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
-					//force += mass * acceleration * 0.05f;
-				}
+				//if (Dot3(velocity, cursorPosition - position) < 0) {
+				//	Vec3 deltaVelocity = velocity - prevVelocity;
+				//	Vec3 acceleration = deltaVelocity / g_realdt;
+				//	//acceleration -= Vec3(g_params.gravity[0], g_params.gravity[1], g_params.gravity[2]);
+				//	//force += mass * acceleration * 0.05f;
+				//}
 
-				netForce += force;
+				netForce += -exertedForce;// *0.05f;
 			}
 		}
 	}
