@@ -206,6 +206,7 @@ struct HapticsUpdate {
 	HapticsUpdate() : updated(false) {}
 
 	bool updated;
+	Vec3 cursorOffset;
 	Vec3 cursorPosition;
 	Vec3 prevCursorPosition;
 	float dt;
@@ -657,6 +658,9 @@ void Init(int scene, bool centerCamera = true)
 		NvFlexDestroySolver(g_solver);
 		g_solver = NULL;
 	}
+
+	g_hapticsUpdates.cursorOffset = Vec3(0.f);
+	g_hapticsUpdates.lastForceApplied = Vec3(0.f);
 
 	// alloc buffers
 	g_buffers = AllocBuffers(g_flexLib);
@@ -3058,10 +3062,6 @@ Vec3 GetCollisionForces(int cursorIndex) {
 		}
 		else if (type == eNvFlexShapeBox) {
 			// Convert haptic position to object space to simplify calculations
-			//Matrix33 transform = Matrix33(shapeRotation);
-			//bool success;
-			//Matrix33 inverseTransform = Inverse(transform, success);
-
 			Vec3 calcHapticPos = g_hapticsUpdates.cursorPosition - shapePosition;
 			calcHapticPos = Inverse(shapeRotation) * calcHapticPos;
 
@@ -3105,7 +3105,7 @@ Vec3 GetCollisionForces(int cursorIndex) {
 	for (size_t i = 0; i < g_params.numPlanes; ++i) {
 		Vec4 plane = Vec4(g_params.planes[i]);
 		Vec3 normal = plane;
-		Vec3 position = normal * -plane.w + g_cursorRadius;
+		Vec3 position = normal * (-plane.w + g_cursorRadius);
 
 		Vec3 faceToPos = ProjectPointOnPlane(g_hapticsUpdates.cursorPosition, position, normal) - g_hapticsUpdates.cursorPosition;
 		if (Dot(faceToPos, normal) > 0) {
@@ -3114,6 +3114,70 @@ Vec3 GetCollisionForces(int cursorIndex) {
 	}
 
 	return netForce;
+}
+
+// Adapted from chai3d::cAngle
+float Angle(const Vec3& a_vector1, const Vec3& a_vector2) {
+	// compute length of vectors
+	float n1 = Length(a_vector1);
+	float n2 = Length(a_vector2);
+	float val = n1 * n2;
+
+	// check if lengths of vectors are not zero
+	if (fabs(val) < C_SMALL) {
+		return (0.f);
+	}
+
+	// compute angle
+	float result = Dot(a_vector1, a_vector2) / val;
+	if (result > 1.f) { result = 1.f; }
+	else if (result < -1.f) { result = -1.f; }
+
+	return acos(result);
+}
+
+void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
+	devicePosition /= multiplier;
+
+	// Define the movement sphere parameters
+	constexpr float radius = 0.03;
+	constexpr float maxDist = 0.045 - radius;
+	constexpr float speed = 0.0001;
+	constexpr float distScale = 4;
+
+	// Define the workspace boundaries
+	const Vec3 workspaceMin = Vec3(-1.f, 0.f, -1.f) * 10.f;
+	const Vec3 workspaceMax = Vec3(1.f, 1.f, 1.f) * 10.f;
+
+	// Modify the movement vector. The z-axis needs to be moved forward
+	// slightly so that the forward movement can be equal to the backward
+	// movement. Then the z-axis needs to be scaled so that it can be
+	// equal to the x and y axes
+	Vec3 scaledPosition = devicePosition;
+	scaledPosition.z = (-0.0035f + scaledPosition.z) * 1.2f;
+
+	// Joystick simulation force
+	constexpr float stiffness = 5.f;
+	Vec3 moveForce = Vec3(0.f);
+
+	// Move the device position when it leaves the movement sphere
+	if (Length(scaledPosition) > radius) {
+		// Calculate the direction and distance to move the device
+		const Vec3 norm = Normalize(scaledPosition);
+		const float dist = Min(Length(scaledPosition) - radius, maxDist) / maxDist;
+		const float scaledDist = pow(dist, distScale) * speed;
+		const Vec3 newPos = g_hapticsUpdates.cursorOffset + (norm * scaledDist);
+		g_hapticsUpdates.cursorOffset = Clamp(newPos, workspaceMin, workspaceMax);
+
+		// Update joystick simulation force
+		moveForce = stiffness * dist * -norm;
+	}
+
+	g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
+	g_hapticsUpdates.cursorPosition = g_hapticsUpdates.cursorOffset*multiplier + devicePosition*multiplier;
+
+	// Update the camera
+	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);
 }
 
 void updateHaptics(void)
@@ -3174,8 +3238,11 @@ void updateHaptics(void)
 			if (cursorIndex > -1) {
 				g_hapticsUpdates.updated = true;
 				g_hapticsUpdates.dt = deltaTick;
-				g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
-				g_hapticsUpdates.cursorPosition = devicePosition;
+				
+				/*g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
+				g_hapticsUpdates.cursorPosition = devicePosition;*/
+
+				UpdateWorkspace(devicePosition, multiplier);
 
 
 				// Damping:
