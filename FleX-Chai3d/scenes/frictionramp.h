@@ -27,6 +27,9 @@ public:
 		g_drawPoints = false;
 		g_wireframe = false;
 		g_drawSprings = false;
+		g_drawContacts = true;
+
+		//AddSphere(2.f, Vec3(0.f, 1.f, -1.f), Quat());
 
 		for (int i = 0; i < 3; ++i)
 		{

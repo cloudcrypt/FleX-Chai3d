@@ -469,7 +469,7 @@ void AddPlinth()
 	AddBox(Vec3(2.0f, 0.5f, 2.0f), center);
 }
 
-void AddSphere(float radius, Vec3 position, Quat rotation)
+void AddSphere(float radius, Vec3 position, Quat rotation, bool dynamic=false)
 {
 	NvFlexCollisionGeometry geo;
 	geo.sphere.radius = radius;
@@ -481,7 +481,7 @@ void AddSphere(float radius, Vec3 position, Quat rotation)
 	g_buffers->shapePrevPositions.push_back(g_buffers->shapePositions.back());
 	g_buffers->shapePrevRotations.push_back(g_buffers->shapeRotations.back());
 
-	int flags = NvFlexMakeShapeFlags(eNvFlexShapeSphere, false);
+	int flags = NvFlexMakeShapeFlags(eNvFlexShapeSphere, dynamic);
 	g_buffers->shapeFlags.push_back(flags);
 }
 

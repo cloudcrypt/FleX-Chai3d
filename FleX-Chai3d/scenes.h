@@ -36,7 +36,7 @@ class Scene
 {
 public:
 
-	Scene(const char* name) : mName(name), mCursorIndex(-1), mCursorRadius(0.2f) {}
+	Scene(const char* name) : mName(name), mCursorIndex(-1) {}
 	
 	virtual void Initialize() = 0;
 	virtual void PostInitialize() {
@@ -44,7 +44,7 @@ public:
 	}
 
 	void CreateCursor() {
-		AddSphere(mCursorRadius, Vec3(0.f, 0.f, 0.f), Quat());
+		AddSphere(g_cursorRadius, Vec3(0.f, 0.f, 0.f), Quat(), true);
 		mCursorIndex = g_buffers->shapePositions.size() - 1;
 	}
 	
@@ -66,7 +66,6 @@ public:
 	const char* mName;
 
 	int mCursorIndex;
-	float mCursorRadius;
 };
 
 

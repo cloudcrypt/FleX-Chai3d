@@ -113,6 +113,8 @@ SDL_GameController* g_gamecontroller = NULL;
 using namespace std;
 using namespace chai3d;
 
+float g_cursorRadius = 0.2;
+
 // a haptic device handler
 cHapticDeviceHandler* g_handler;
 
@@ -202,11 +204,15 @@ struct HapticsUpdate {
 
 	bool updated;
 	Vec3 cursorPosition;
+	Vec3 prevCursorPosition;
+	float dt;
 
 	Vec3 velocity;
 	Vec4 position;
 
 	Vec3 force;
+
+	Vec3 lastForceApplied;
 };
 
 struct SimBuffers
@@ -1270,10 +1276,93 @@ void UpdateScene()
 	g_scenes[g_scene]->Update();
 }
 
+Vec3 Project(const Vec3& v, const Vec3& n) {
+	return (Dot(v, n) / (Length(n)*Length(n))) * n;
+}
+
+Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Vec3& a_planeNormal) {
+	return a_point - Project(a_point - a_planePoint, a_planeNormal);
+}
+
+Vec3 GetCollisionForces(int cursorIndex) {
+	Vec3 netForce = Vec3(0.f);
+
+	for (int i = 0; i < g_buffers->shapeFlags.size(); ++i)
+	{
+		if (i == cursorIndex) continue;
+
+		const int flags = g_buffers->shapeFlags[i];
+
+		// unpack flags
+		int type = int(flags & eNvFlexShapeFlagTypeMask);
+
+		NvFlexCollisionGeometry shape = g_buffers->shapeGeometry[i];
+		Vec3 shapePosition = g_buffers->shapePositions[i];
+		Quat shapeRotation = g_buffers->shapeRotations[i];
+
+		Vec3 collisionForce = Vec3(0.f);
+		if (type == eNvFlexShapeSphere) {
+			float calcRadius = shape.sphere.radius + g_cursorRadius;
+			Vec3 offset = g_hapticsUpdates.cursorPosition - shapePosition;
+			double length = Length(offset);
+			if (length <= calcRadius) {
+				collisionForce = Normalize(offset) * (calcRadius - length);
+			}
+		} else if (type == eNvFlexShapeBox) {
+			// Convert haptic position to object space to simplify calculations
+			//Matrix33 transform = Matrix33(shapeRotation);
+			//bool success;
+			//Matrix33 inverseTransform = Inverse(transform, success);
+
+			Vec3 calcHapticPos = g_hapticsUpdates.cursorPosition - shapePosition;
+			calcHapticPos = Inverse(shapeRotation) * calcHapticPos;
+			
+			Vec3 calcScale = Vec3(
+				shape.box.halfExtents[0] + g_cursorRadius,
+				shape.box.halfExtents[1] + g_cursorRadius,
+				shape.box.halfExtents[2] + g_cursorRadius
+			);
+
+			// Define face normals for each side of the cube
+			Vec3 faceNormals[6] = { Vec3(0.f, 0.f, 1.f), Vec3(0.f, 0.f, -1.f), Vec3(0.f, 1.f, 0.f),
+				Vec3(0.f, -1.f, 0.f), Vec3(1.f, 0.f, 0.f), Vec3(-1.f, 0.f, 0.f) };
+
+			// Calculate face to pos vectors and distances, and determine if pos is in bounds
+			bool inBounds = true;
+			float minDist = FLT_MAX;
+			Vec3 minVector = Vec3(0.f);
+			for (size_t i = 0; i < 6; i++) {
+				Vec3 normal = faceNormals[i];
+				Vec3 scaledNormal = normal * calcScale;
+				Vec3 point = scaledNormal;
+				Vec3 faceToPos = ProjectPointOnPlane(calcHapticPos, point, normal) - calcHapticPos;
+
+				if (Dot(faceToPos, normal) > 0) {
+					float length = Length(faceToPos);
+					if (length < minDist) {
+						minDist = length;
+						minVector = faceToPos;
+					}
+				} else {
+					inBounds = false;
+					break;
+				}
+			}
+
+			// Return the force vector in world space if the position is in bounds
+			if (inBounds) {
+				collisionForce = shapeRotation * minVector;
+			}
+		}
+		netForce += collisionForce;
+	}
+
+	return netForce;
+}
+
 //Vec3 g_lastNetVelocity;
 void UpdateCursor() {
 	int cursorIndex = g_scenes[g_scene]->mCursorIndex;
-	float cursorRadius = g_scenes[g_scene]->mCursorRadius;
 	if (cursorIndex < 0) return;
 
 	const int maxContactsPerParticle = 6;
@@ -1316,7 +1405,7 @@ void UpdateCursor() {
 
 			if (contactVelocity.w == cursorIndex) {
 				int phase = g_buffers->phases[particleIndex];
-				bool fluid = phase & eNvFlexPhaseFluid || phase;
+				bool fluid = phase & eNvFlexPhaseFluid;
 				float mult = fluid ? 0.2f : 1.f;
 
 				Vec3 velocity = g_buffers->velocities[particleIndex];
@@ -1330,7 +1419,7 @@ void UpdateCursor() {
 
 				Vec3 cursorToPosition = (position - cursorPosition);
 
-				Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * cursorRadius;
+				Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * g_cursorRadius;
 
 				Vec3 force = -(position - cursorPosition) * mult;
 				x++;
@@ -1352,18 +1441,20 @@ void UpdateCursor() {
 		}
 	}
 
-	//cout << netVelocity.x << ", " << netVelocity.y << ", " << netVelocity.z << endl;
+	/*Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.cursorPosition) / g_realdt;
+	Vec3 dampingForce = -0.2f * deviceVelocity;
 
-	//Vec3 acc = ((netVelocity - g_lastNetVelocity) / g_realdt);
+	netForce += dampingForce;*/
 
-	//Vec3 force = 1.f * acc / 500.f;
-	//g_hapticsUpdates.force = netForce / (100.f * x);
-	//if (x > 0.f) netForce /= x;
+
+
+	constexpr float stiffness = 100.f; // 100.f;
+	netForce += stiffness * GetCollisionForces(cursorIndex);
+
+
+	// damping:
+	// F_d = -v*v*c
 	g_hapticsUpdates.force = netForce;
-
-	
-
-	//g_lastNetVelocity = netVelocity;
 
 	if (g_hapticsUpdates.updated) {
 		g_hapticsUpdates.updated = false;
@@ -2995,12 +3086,22 @@ void updateHaptics(void)
 		Vec3 particleForce;
 		Vec3 devicePosition = Vec3(position.y(), position.z(), position.x()) * multiplier;
 		
-		if (thisTick > 0.1 && g_scene > -1) {
+		if (g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
 			if (cursorIndex > -1) {
 				g_hapticsUpdates.updated = true;
+				g_hapticsUpdates.dt = deltaTick;
+				g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
 				g_hapticsUpdates.cursorPosition = devicePosition;
+
+
+				// Damping:
+				/*Vec3 deviceVelocity = (g_hapticsUpdates.cursorPosition - g_hapticsUpdates.prevCursorPosition) / g_hapticsUpdates.dt;
+				Vec3 dampingForce = -10000.f * deviceVelocity;
+				particleForce += dampingForce;*/
 				
+
+
 				//Vec4 particlePosition = g_hapticsUpdates.position;
 
 				//velocityChangeTick += deltaTick;
@@ -3019,13 +3120,20 @@ void updateHaptics(void)
 				//particleForce = (devicePosition - particlePosition) * 3000.f / multiplier;
 
 				particleForce = g_hapticsUpdates.force;
-
 			}
 		}
 
 		/////////////////////////////////////////////////////////////////////
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
+
+		// Discrete-time low-pass filter:
+		/*float Tf = 0.1f;
+		float a = deltaTick / (Tf + deltaTick);
+		Vec3 appliedForce = ((1.f - a) * g_hapticsUpdates.lastForceApplied) + (a * particleForce);
+		g_hapticsUpdates.lastForceApplied = appliedForce;*/
+
+
 
 		cVector3d force(particleForce.z, particleForce.x, particleForce.y);
 		cVector3d torque(0, 0, 0);
