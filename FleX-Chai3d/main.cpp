@@ -128,6 +128,7 @@ cThread* g_hapticsThread;
 // haptic tool
 cWorld* g_chaiWorld;
 cToolCursor* g_chaiTool;
+float g_chaiScaleFactor = 100.f;
 
 mutex g_shapeMutex;
 mutex g_meshMutex;
@@ -690,7 +691,8 @@ void Init(int scene, bool centerCamera = true)
 		g_solver = NULL;
 	}
 
-	g_hapticsUpdates.cursorOffset = Vec3(0.f);
+	//g_hapticsUpdates.cursorOffset = Vec3(0.f);
+	g_chaiTool->setLocalPos(cVector3d(0.0, 0.0, 0.0));
 	g_hapticsUpdates.lastForce = Vec3(0.f);
 
 	// alloc buffers
@@ -3186,9 +3188,9 @@ float Angle(const Vec3& a_vector1, const Vec3& a_vector2) {
 
 	return acos(result);
 }
-
-void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
-	devicePosition /= multiplier;
+/*Vec3 devicePosition, const float multiplier*/
+void UpdateWorkspace(const cVector3d position) {
+	/*devicePosition /= multiplier;
 
 	// Define the movement sphere parameters
 	constexpr float radius = 0.03;
@@ -3223,7 +3225,46 @@ void UpdateWorkspace(Vec3 devicePosition, const float multiplier) {
 	g_hapticsUpdates.cursorPosition = g_hapticsUpdates.cursorOffset*multiplier + devicePosition*multiplier;
 
 	// Update the camera
-	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);
+	g_camPos = g_hapticsUpdates.cursorOffset*multiplier + Vec3(0.f, 2.f, 7.f);*/
+
+	// Define the movement sphere parameters
+	constexpr double radius = 0.03;
+	constexpr double maxDist = 0.045 - radius;
+	constexpr double speed = 0.0001;
+	constexpr double distScale = 4;
+
+	// Modify the movement vector. The x-axis needs to be moved forward
+	// slightly so that the forward movement can be equal to the backward
+	// movement. Then the x-axis needs to be scaled so that it can be
+	// equal to the y and z axes
+	cVector3d scaledPosition = position;
+	scaledPosition.x((-0.0035 + scaledPosition.x()) * 1.1);
+
+	// Joystick simulation force
+	const double stiffness = 5.0;
+	cVector3d moveForce = cVector3d(0.0, 0.0, 0.0);
+
+	// Move the device position when it leaves the movement sphere
+	if (scaledPosition.length() > radius) {
+		// Calculate the direction and distance to move the device
+		cVector3d norm = cNormalize(scaledPosition);
+		double dist = cMin(scaledPosition.length() - radius, maxDist) / maxDist;
+		double scaledDist = pow(dist, distScale) * speed;
+		g_chaiTool->setLocalPos(g_chaiTool->getLocalPos() + (norm * scaledDist)*g_chaiScaleFactor);
+
+		// Update joystick simulation force
+		moveForce = stiffness * dist * -norm;
+	}
+
+	// Update the tool based on the hardware
+	g_chaiTool->updateFromDevice();
+	g_hapticsUpdates.prevCursorPosition = g_hapticsUpdates.cursorPosition;
+	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->getHapticPoint(0)->getGlobalPosProxy());
+
+	// Update the camera
+	g_camPos = FromChai(g_chaiTool->getLocalPos()) + Vec3(0.f, 2.f, 7.f);
+
+	//cout << g_chaiTool->getLocalPos().str() << endl;
 }
 
 void updateHaptics(void)
@@ -3270,13 +3311,9 @@ void updateHaptics(void)
 		// UPDATE 3D CURSOR MODEL
 		/////////////////////////////////////////////////////////////////////
 
-		constexpr float multiplier = 100.f;
-
 		Vec3 particleForce = Vec3(0.f);
-		Vec3 devicePosition = FromChai(position) * multiplier;
+		Vec3 devicePosition = FromChai(position) * g_chaiScaleFactor;
 		Vec3 deviceVelocity = FromChai(velocity);
-		
-		//g_chaiTool->updateFromDevice();
 		
 		if (g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
@@ -3285,7 +3322,7 @@ void updateHaptics(void)
 				g_hapticsUpdates.dt = deltaTick;
 
 				// Move cursor based on device
-				UpdateWorkspace(devicePosition, multiplier);
+				UpdateWorkspace(position);
 				
 				// Update cursor based on connected particles
 				if (g_shapeMutex.try_lock()) {
@@ -3305,32 +3342,25 @@ void updateHaptics(void)
 				Vec3 dampingForce = -0.5f * deviceVelocity;
 				particleForce += dampingForce;
 
-				constexpr float stiffness = 100.f; // 100.f;
+				// Shape collision forces
+				//constexpr float stiffness = 100.f; // 100.f;
 				//particleForce += stiffness * GetCollisionForces(cursorIndex);
+
+				//g_chaiTool->setDeviceLocalPos(ToChai(g_hapticsUpdates.cursorPosition));
+				g_chaiWorld->computeGlobalPositions();
+
+				if (g_meshMutex.try_lock()) {
+					g_chaiTool->computeInteractionForces();
+					g_meshMutex.unlock();
+				}
 			}
-		}
-
-		g_chaiTool->setDeviceLocalPos(ToChai(g_hapticsUpdates.cursorPosition));
-		g_chaiWorld->computeGlobalPositions();
-
-		/////////////////////////////////////////////////////////////////////
-		// COMPUTE FORCES
-		/////////////////////////////////////////////////////////////////////
-
-		cVector3d force = ToChai(particleForce);
-		//cVector3d torque(0, 0, 0);
-		//double gripperForce = 0.0;
-
-		if (g_meshMutex.try_lock()) {
-			g_chaiTool->computeInteractionForces();
-			g_meshMutex.unlock();
 		}
 
 		/////////////////////////////////////////////////////////////////////
 		// APPLY FORCES
 		/////////////////////////////////////////////////////////////////////
 
-		g_chaiTool->addDeviceLocalForce(force);
+		g_chaiTool->addDeviceLocalForce(ToChai(particleForce));
 		g_chaiTool->applyToDevice();
 
 		// send computed force, torque, and gripper force to haptic device
@@ -3488,8 +3518,8 @@ int main(int argc, char* argv[])
 	g_chaiWorld = new cWorld();
 
 	g_chaiTool = new cToolCursor(g_chaiWorld);
-	g_chaiTool->setWorkspaceScaleFactor(100.0);
 	g_chaiTool->setHapticDevice(g_hapticDevice);
+	g_chaiTool->setWorkspaceScaleFactor(g_chaiScaleFactor);
 	g_chaiTool->setRadius(g_cursorRadius);
 	g_chaiTool->enableDynamicObjects(true);
 	g_chaiTool->start();
