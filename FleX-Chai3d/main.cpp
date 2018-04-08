@@ -213,13 +213,11 @@ struct HapticsUpdate {
 
 	bool updated;
 	Vec3 cursorPosition;
-	float dt;
 
-	Vec3 velocity;
-	Vec4 position;
+	Vec3 prevCursorVelocity;
+	Vec3 cursorVelocity;
 
-	Vec3 force;
-	Vec3 lastForce;
+	Vec3 lastParticlesForce;
 
 	vector<NvFlexCollisionGeometry> shapeGeometry;
 	vector<Vec4> shapePositions;
@@ -690,7 +688,7 @@ void Init(int scene, bool centerCamera = true)
 	}
 
 	g_chaiTool->setLocalPos(cVector3d(0.0, 0.0, 0.0));
-	g_hapticsUpdates.lastForce = Vec3(0.f);
+	g_hapticsUpdates.lastParticlesForce = Vec3(0.f);
 
 	// alloc buffers
 	g_buffers = AllocBuffers(g_flexLib);
@@ -1392,29 +1390,19 @@ void SaveContacts() {
 		g_hapticsUpdates.updated = false;
 
 		g_buffers->shapePrevPositions[cursorIndex] = g_buffers->shapePositions[cursorIndex];
-
-		g_buffers->shapePositions[cursorIndex].x = g_hapticsUpdates.cursorPosition.x;
-		g_buffers->shapePositions[cursorIndex].y = g_hapticsUpdates.cursorPosition.y;
-		g_buffers->shapePositions[cursorIndex].z = g_hapticsUpdates.cursorPosition.z;
+		g_buffers->shapePositions[cursorIndex] = Vec4(g_hapticsUpdates.cursorPosition, 0.f);
 
 		g_shapesChanged = true;
-
-		g_hapticsUpdates.velocity = Vec3(0.f);
-		g_hapticsUpdates.position = g_buffers->shapePositions[cursorIndex];
 	}
 }
 
-void UpdateCursor() {
+Vec3 UpdateCursor() {
+	Vec3 netForce = Vec3(0.f);
+
 	int cursorIndex = g_scenes[g_scene]->mCursorIndex;
-	if (cursorIndex < 0) return;
+	if (cursorIndex < 0 || g_hapticsUpdates.contactIndices.empty()) return netForce;
 
 	const int maxContactsPerParticle = 6;
-
-	Vec3 netForce;
-
-	Vec3 cursorPosition = g_hapticsUpdates.cursorPosition;
-
-	if (g_hapticsUpdates.contactIndices.empty()) return;
 
 	float x = 0.f;
 	for (int i = 0; i < int(g_hapticsUpdates.activeIndices.size()); ++i) {
@@ -1435,14 +1423,22 @@ void UpdateCursor() {
 				bool fluid = phase & eNvFlexPhaseFluid;
 				//float mult = fluid ? 0.2f : 1.f;
 
-				Vec3 velocity = g_hapticsUpdates.velocities[particleIndex];
-				float speed = Length(velocity);
-				Vec3 prevVelocity = g_hapticsUpdates.prevVelocities[particleIndex];
+				Vec3 particleVelocity = g_hapticsUpdates.velocities[particleIndex];
+				Vec3 particlePrevVelocity = g_hapticsUpdates.prevVelocities[particleIndex];
+
+				//Vec3 velocity = particleVelocity - g_hapticsUpdates.cursorVelocity;
+				//Vec3 prevVelocity = particlePrevVelocity - g_hapticsUpdates.prevCursorVelocity;
+
+				Vec3 velocity = particleVelocity;
+				Vec3 prevVelocity = particlePrevVelocity;
+
+
+
 				Vec4 particle = g_hapticsUpdates.positions[particleIndex];
 				Vec3 position = particle;
 				//float mass = (1.f / particle.w) / 100;
 				//cout << mass << endl;
-				float mass = 0.00075 * (fluid ? 1.f : 3.f);
+				float mass = 0.00075 * (fluid ? 1.f : 2.f);
 
 				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
 				Vec3 exertedForce = mass * acceleration;
@@ -1457,7 +1453,7 @@ void UpdateCursor() {
 				//Vec3 force = -(position - cursorPosition) * mult;
 				//x++;
 
-				bool particleMovingAwayFromCursor = Dot3(velocity, cursorPosition - position) < 0;
+				bool particleMovingAwayFromCursor = Dot3(velocity, g_hapticsUpdates.cursorPosition - position) < 0;
 				if (!particleMovingAwayFromCursor) {
 					exertedForce *= 0.5f;
 				}
@@ -1467,7 +1463,7 @@ void UpdateCursor() {
 		}
 	}
 
-	g_hapticsUpdates.force = netForce;
+	return netForce;
 }
 
 void RenderScene()
@@ -3064,26 +3060,6 @@ Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Ve
 	return a_point - Project(a_point - a_planePoint, a_planeNormal);
 }
 
-// Adapted from chai3d::cAngle
-float Angle(const Vec3& a_vector1, const Vec3& a_vector2) {
-	// compute length of vectors
-	float n1 = Length(a_vector1);
-	float n2 = Length(a_vector2);
-	float val = n1 * n2;
-
-	// check if lengths of vectors are not zero
-	if (fabs(val) < C_SMALL) {
-		return (0.f);
-	}
-
-	// compute angle
-	float result = Dot(a_vector1, a_vector2) / val;
-	if (result > 1.f) { result = 1.f; }
-	else if (result < -1.f) { result = -1.f; }
-
-	return acos(result);
-}
-
 void UpdateWorkspace(const cVector3d position) {
 	// Define the movement sphere parameters
 	constexpr double radius = 0.03;
@@ -3168,35 +3144,36 @@ void updateHaptics(void)
 		// UPDATE 3D CURSOR MODEL
 		/////////////////////////////////////////////////////////////////////
 
-		Vec3 particleForce = Vec3(0.f);
+		Vec3 netForce = Vec3(0.f);
 		Vec3 deviceVelocity = FromChai(velocity);
 		
 		if (g_scene > -1) {
 			int cursorIndex = g_scenes[g_scene]->mCursorIndex;
 			if (cursorIndex > -1) {
 				g_hapticsUpdates.updated = true;
-				g_hapticsUpdates.dt = deltaTick;
+
+				g_hapticsUpdates.cursorVelocity = deviceVelocity;
 
 				// Move cursor based on device
 				UpdateWorkspace(position);
 				
 				// Update cursor based on connected particles
 				if (g_shapeMutex.try_lock()) {
-					UpdateCursor();
+					Vec3 particlesForce = UpdateCursor();
 					g_shapeMutex.unlock();
-				}
 
-				// Discrete-time low-pass filter
-				// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"
-				float Tf = 0.05f;
-				float a = deltaTick / (Tf);
-				float K = 1.f;
-				particleForce = ((1.f - a) * g_hapticsUpdates.lastForce) + (K * a * g_hapticsUpdates.force);
-				g_hapticsUpdates.lastForce = particleForce;
+					// Discrete-time low-pass filter
+					// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"
+					float Tf = 0.05f;
+					float a = deltaTick / (Tf);
+					float K = 1.f;
+					netForce += ((1.f - a) * g_hapticsUpdates.lastParticlesForce) + (K * a * particlesForce);
+					g_hapticsUpdates.lastParticlesForce = particlesForce;
+				}
 
 				// Add damping
 				Vec3 dampingForce = -0.5f * deviceVelocity;
-				particleForce += dampingForce;
+				netForce += dampingForce;
 
 				// Update the chai3d world
 				g_chaiWorld->computeGlobalPositions();
@@ -3206,6 +3183,8 @@ void updateHaptics(void)
 					g_chaiTool->computeInteractionForces();
 					g_meshMutex.unlock();
 				}
+
+				g_hapticsUpdates.prevCursorVelocity = deviceVelocity;
 			}
 		}
 
@@ -3213,7 +3192,7 @@ void updateHaptics(void)
 		// APPLY FORCES
 		/////////////////////////////////////////////////////////////////////
 
-		g_chaiTool->addDeviceLocalForce(ToChai(particleForce));
+		g_chaiTool->addDeviceLocalForce(ToChai(netForce));
 		g_chaiTool->applyToDevice();
 
 		// signal frequency counter
