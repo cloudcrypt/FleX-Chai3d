@@ -1440,7 +1440,7 @@ Vec3 GetParticlesForce() {
 				Vec3 position = particle;
 				//float mass = (1.f / particle.w) / 100;
 				//cout << mass << endl;
-				float mass = 0.00075 * (fluid ? 1.f : 1.f);
+				float mass = 0.00075 * (fluid ? 4.f : 1.f);
 
 				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
 				Vec3 exertedForce = mass * acceleration;
@@ -3168,13 +3168,14 @@ void updateHaptics(void)
 					// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"
 					float Tf = 0.05f;
 					float a = deltaTick / (Tf);
-					float K = 1.f;
-					netForce += ((1.f - a) * g_hapticsUpdates.lastParticlesForce) + (K * a * particlesForce);
-					g_hapticsUpdates.lastParticlesForce = particlesForce;
+					float K = 0.25f;
+					Vec3 filteredForce = ((1.f - a) * g_hapticsUpdates.lastParticlesForce) + (K * a * particlesForce);
+					g_hapticsUpdates.lastParticlesForce = filteredForce;
+					netForce += filteredForce;
 				}
 
 				// Add damping
-				Vec3 dampingForce = -0.5f * deviceVelocity;
+				Vec3 dampingForce = -1.0f * deviceVelocity;
 				netForce += dampingForce;
 
 				// Update the chai3d world
