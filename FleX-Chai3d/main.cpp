@@ -436,6 +436,7 @@ void DestroyBuffers(SimBuffers* buffers)
 		g_chaiWorld->removeChild(mesh);
 		delete mesh;
 	}
+
 	g_meshMutex.unlock();
 
 	// particles
@@ -1396,7 +1397,7 @@ void SaveContacts() {
 	}
 }
 
-Vec3 UpdateCursor() {
+Vec3 GetParticlesForce() {
 	Vec3 netForce = Vec3(0.f);
 
 	int cursorIndex = g_scenes[g_scene]->mCursorIndex;
@@ -1438,7 +1439,7 @@ Vec3 UpdateCursor() {
 				Vec3 position = particle;
 				//float mass = (1.f / particle.w) / 100;
 				//cout << mass << endl;
-				float mass = 0.00075 * (fluid ? 1.f : 2.f);
+				float mass = 0.00075 * (fluid ? 1.f : 1.f);
 
 				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
 				Vec3 exertedForce = mass * acceleration;
@@ -3094,7 +3095,7 @@ void UpdateWorkspace(const cVector3d position) {
 	g_chaiTool->updateFromDevice();
 
 	// Update the cursor position based on the tool
-	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->getHapticPoint(0)->getGlobalPosProxy());
+	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy());
 
 	// Update the camera
 	g_camPos = FromChai(g_chaiTool->getLocalPos()) + Vec3(0.f, 2.f, 7.f);
@@ -3159,7 +3160,7 @@ void updateHaptics(void)
 				
 				// Update cursor based on connected particles
 				if (g_shapeMutex.try_lock()) {
-					Vec3 particlesForce = UpdateCursor();
+					Vec3 particlesForce = GetParticlesForce();
 					g_shapeMutex.unlock();
 
 					// Discrete-time low-pass filter
@@ -3429,6 +3430,14 @@ int main(int argc, char* argv[])
 	SoftBody* softTeapotSceneNew = new SoftBody("Soft Teapot");
 	softTeapotSceneNew->AddInstance(teapot);
 
+	SoftBody::Instance ducky("../../data/ducky.obj");
+	ducky.mScale = Vec3(25.0f);
+	ducky.mClusterSpacing = 3.0f;
+	ducky.mClusterRadius = 0.0f;
+	ducky.mClusterStiffness = 0.1f;
+	SoftBody* softDuckySceneNew = new SoftBody("Soft Ducky");
+	softDuckySceneNew->AddInstance(ducky);
+
 	SoftBody::Instance armadillo("../../data/armadillo.ply");
 	armadillo.mScale = Vec3(25.0f);
 	armadillo.mClusterSpacing = 3.0f;
@@ -3519,6 +3528,7 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(softRodSceneNew);
 	g_scenes.push_back(softArmadilloSceneNew);
 	g_scenes.push_back(softBunnySceneNew);
+	g_scenes.push_back(softDuckySceneNew);
 
 	g_scenes.push_back(plasticBunniesSceneNew);
 	g_scenes.push_back(plasticComparisonScene);
