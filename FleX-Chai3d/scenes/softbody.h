@@ -39,6 +39,7 @@ public:
 
 			mScale(2.0f),
 			mTranslation(0.0f, 1.0f, 0.0f),
+			mRotation(Quat()),
 
 			mClusterSpacing(1.0f),
 			mClusterRadius(0.0f),
@@ -64,6 +65,7 @@ public:
 
 		Vec3 mScale;
 		Vec3 mTranslation;
+		Quat mRotation;
 
 		float mClusterSpacing;
 		float mClusterRadius;
@@ -181,7 +183,7 @@ public:
 
 		Mesh* mesh = ImportMesh(GetFilePathByPlatform(instance.mFile).c_str());
 		mesh->Normalize();
-		mesh->Transform(TranslationMatrix(Point3(instance.mTranslation))*ScaleMatrix(instance.mScale*mRadius));
+		mesh->Transform(TranslationMatrix(Point3(instance.mTranslation))*ScaleMatrix(instance.mScale*mRadius)*RotationMatrix(instance.mRotation));
 
 		renderingInstance.mMesh = mesh;
 		renderingInstance.mColor = instance.mColor;

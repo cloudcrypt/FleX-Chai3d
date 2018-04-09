@@ -1405,6 +1405,7 @@ Vec3 GetParticlesForce() {
 	if (cursorIndex < 0 || g_hapticsUpdates.contactIndices.empty() || g_hapticsUpdates.positions.empty()) return netForce;
 
 	const int maxContactsPerParticle = 6;
+	bool touchingFluid = false;
 
 	float x = 0.f;
 	for (int i = 0; i < int(g_hapticsUpdates.activeIndices.size()); ++i) {
@@ -1423,6 +1424,7 @@ Vec3 GetParticlesForce() {
 			if (contactVelocity.w == cursorIndex) {
 				int phase = g_hapticsUpdates.phases[particleIndex];
 				bool fluid = phase & eNvFlexPhaseFluid;
+				if (fluid) touchingFluid = true;
 				//float mult = fluid ? 0.2f : 1.f;
 
 				Vec3 particleVelocity = g_hapticsUpdates.velocities[particleIndex];
@@ -1440,7 +1442,7 @@ Vec3 GetParticlesForce() {
 				Vec3 position = particle;
 				//float mass = (1.f / particle.w) / 100;
 				//cout << mass << endl;
-				float mass = 0.00075 * (fluid ? 4.f : 1.f);
+				float mass = 0.00075 * 4.f * (fluid ? 1.f : (touchingFluid ? 1.f : 2.f));
 
 				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
 				Vec3 exertedForce = mass * acceleration;
@@ -3062,9 +3064,9 @@ Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Ve
 	return a_point - Project(a_point - a_planePoint, a_planeNormal);
 }
 
-void UpdateWorkspace(const cVector3d position) {
+Vec3 UpdateWorkspace(const cVector3d position) {
 	// Define the movement sphere parameters
-	constexpr double radius = 0.03;
+	constexpr double radius = 0.02;
 	constexpr double maxDist = 0.045 - radius;
 	constexpr double speed = 0.0001;
 	constexpr double distScale = 4;
@@ -3077,15 +3079,16 @@ void UpdateWorkspace(const cVector3d position) {
 	scaledPosition.x((-0.0035 + scaledPosition.x()) * 1.1);
 
 	// Joystick simulation force
-	const double stiffness = 5.0;
+	const double stiffness = 2.5;
 	cVector3d moveForce = cVector3d(0.0, 0.0, 0.0);
+	double scaledDist = 0.0;
 
 	// Move the device position when it leaves the movement sphere
 	if (scaledPosition.length() > radius) {
 		// Calculate the direction and distance to move the device
 		cVector3d norm = cNormalize(scaledPosition);
 		double dist = cMin(scaledPosition.length() - radius, maxDist) / maxDist;
-		double scaledDist = pow(dist, distScale) * speed;
+		scaledDist = pow(dist, distScale) * speed;
 		g_chaiTool->setLocalPos(g_chaiTool->getLocalPos() + (norm * scaledDist)*g_chaiScaleFactor);
 
 		// Update joystick simulation force
@@ -3099,7 +3102,10 @@ void UpdateWorkspace(const cVector3d position) {
 	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy());
 
 	// Update the camera
-	g_camPos = FromChai(g_chaiTool->getLocalPos()) + Vec3(0.f, 2.f, 7.f);
+	Vec3 toolPosition = FromChai(g_chaiTool->getLocalPos());
+	g_camPos = Lerp(g_camPos, g_hapticsUpdates.cursorPosition + Vec3(0.f, 2.f, 5.f), 0.001f + (scaledDist * speed * g_chaiScaleFactor * 2.f));
+
+	return FromChai(moveForce);
 }
 
 void updateHaptics(void)
@@ -3157,7 +3163,8 @@ void updateHaptics(void)
 				g_hapticsUpdates.cursorVelocity = deviceVelocity;
 
 				// Move cursor based on device
-				UpdateWorkspace(position);
+				Vec3 moveForce = UpdateWorkspace(position);
+				netForce += moveForce;
 				
 				// Update cursor based on connected particles
 				if (g_shapeMutex.try_lock()) {
@@ -3371,6 +3378,7 @@ int main(int argc, char* argv[])
 
 	// haptics-enabled scenes
 	g_scenes.push_back(new FrictionRamp("Friction Ramp"));
+	g_scenes.push_back(new BunnyBath("Duck Bath Dam", true, true));
 	g_scenes.push_back(new BunnyBath("Bunny Bath Dam", true));
 
 	// opening scene
@@ -3434,6 +3442,7 @@ int main(int argc, char* argv[])
 
 	SoftBody::Instance ducky("../../data/ducky.obj");
 	ducky.mScale = Vec3(25.0f);
+	ducky.mRotation = QuatFromAxisAngle(Vec3(0.f, 1.f, 0.f), DegToRad(-45.f)) * QuatFromAxisAngle(Vec3(1.f, 0.f, 0.f), DegToRad(-90.f));
 	ducky.mClusterSpacing = 3.0f;
 	ducky.mClusterRadius = 0.0f;
 	ducky.mClusterStiffness = 0.1f;
@@ -3522,6 +3531,7 @@ int main(int argc, char* argv[])
 		plasticStackScene->AddInstance(stackSphere);
 	}
 
+	g_scenes.push_back(softDuckySceneNew);
 	g_scenes.push_back(softOctopusSceneNew);
 	g_scenes.push_back(softTeapotSceneNew);
 	g_scenes.push_back(softRopeSceneNew);
@@ -3530,7 +3540,6 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(softRodSceneNew);
 	g_scenes.push_back(softArmadilloSceneNew);
 	g_scenes.push_back(softBunnySceneNew);
-	g_scenes.push_back(softDuckySceneNew);
 
 	g_scenes.push_back(plasticBunniesSceneNew);
 	g_scenes.push_back(plasticComparisonScene);

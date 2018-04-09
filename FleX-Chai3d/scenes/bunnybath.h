@@ -3,7 +3,7 @@ class BunnyBath : public Scene
 {
 public:
 
-	BunnyBath(const char* name, bool dam) : Scene(name), mDam(dam) {}
+	BunnyBath(const char* name, bool dam, bool ducky=false) : Scene(name), mDam(dam), mDucky(ducky) {}
 
 	void Initialize()
 	{
@@ -11,15 +11,21 @@ public:
 
 		// deforming bunny
 		float s = radius*0.5f;
-		float m = 0.25f;
+		float m = 1.f / 4.f;
 		int group = 1;
 
-		CreateParticleShape(GetFilePathByPlatform("../../data/ducky.obj").c_str(), Vec3(0.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
-		CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(4.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+		if (mDucky) {
+			float bM = 1.f / 2.f;
+			CreateParticleShape(GetFilePathByPlatform("../../data/ducky.obj").c_str(), Vec3(4.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), bM, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+			CreateParticleShape(GetFilePathByPlatform("../../data/ducky.obj").c_str(), Vec3(3.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), bM, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+			CreateParticleShape(GetFilePathByPlatform("../../data/ducky.obj").c_str(), Vec3(2.0f, 0.0f, 1.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), bM, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+		} else {
+			CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(4.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+			CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(3.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+			CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(2.0f, 0.0f, 1.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
+		}
 		CreateParticleShape(GetFilePathByPlatform("../../data/box.ply").c_str(), Vec3(4.0f, 0.0f, 1.0f), 0.45f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
-		CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(3.0f, 0.0f, 0.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
 		CreateParticleShape(GetFilePathByPlatform("../../data/sphere.ply").c_str(), Vec3(3.0f, 0.0f, 1.0f), 0.45f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
-		CreateParticleShape(GetFilePathByPlatform("../../data/bunny.ply").c_str(), Vec3(2.0f, 0.0f, 1.0f), 0.5f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
 		CreateParticleShape(GetFilePathByPlatform("../../data/box.ply").c_str(), Vec3(2.0f, 0.0f, 0.0f), 0.45f, 0.0f, s, Vec3(0.0f, 0.0f, 0.0f), m, true, 1.0f, NvFlexMakePhase(group++, 0), true, 0.0f);
 
 		g_numSolidParticles = g_buffers->positions.size();		
@@ -80,4 +86,5 @@ public:
 	}
 
 	bool mDam;
+	bool mDucky;
 };
