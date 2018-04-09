@@ -427,15 +427,16 @@ SimBuffers* AllocBuffers(NvFlexLibrary* lib)
 void DestroyBuffers(SimBuffers* buffers)
 {
 	g_meshMutex.lock();
+
 	for (cMesh* mesh : g_hapticsUpdates.shapeMeshes) {
 		g_chaiWorld->removeChild(mesh);
-		delete mesh;
 	}
 
 	for (cMesh* mesh : g_hapticsUpdates.planeMeshes) {
 		g_chaiWorld->removeChild(mesh);
-		delete mesh;
 	}
+	
+	g_chaiTool->computeInteractionForces();
 
 	g_meshMutex.unlock();
 
@@ -1401,7 +1402,7 @@ Vec3 GetParticlesForce() {
 	Vec3 netForce = Vec3(0.f);
 
 	int cursorIndex = g_scenes[g_scene]->mCursorIndex;
-	if (cursorIndex < 0 || g_hapticsUpdates.contactIndices.empty()) return netForce;
+	if (cursorIndex < 0 || g_hapticsUpdates.contactIndices.empty() || g_hapticsUpdates.positions.empty()) return netForce;
 
 	const int maxContactsPerParticle = 6;
 
