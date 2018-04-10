@@ -62,7 +62,7 @@ public:
 		Emitter e1;
 		e1.mDir = Vec3(1.0f, 0.0f, 0.0f);
 		e1.mRight = Vec3(0.0f, 0.0f, -1.0f);
-		e1.mPos = Vec3(radius-0.1f, 3.f, 0.85f);
+		e1.mPos = Vec3(radius-0.15f, 3.f, 0.85f);
 		e1.mSpeed = (restDistance / g_dt)*2.0f; // 2 particle layers per-frame
 		e1.mEnabled = true;
 
@@ -71,7 +71,7 @@ public:
 		Emitter e2;
 		e2.mDir = Vec3(-1.0f, 0.0f, 0.0f);
 		e2.mRight = Vec3(0.0f, 0.0f, 1.0f);
-		e2.mPos = Vec3(radius+4.3f, 3.f, 0.45f);
+		e2.mPos = Vec3(radius+4.425f, 3.f, 0.45f);
 		e2.mSpeed = (restDistance / g_dt)*2.0f; // 2 particle layers per-frame
 		e2.mEnabled = true;
 
