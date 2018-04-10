@@ -3071,7 +3071,13 @@ Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Ve
 	return a_point - Project(a_point - a_planePoint, a_planeNormal);
 }
 
-Vec3 UpdateWorkspace(const cVector3d position) {
+template <typename T>
+T TimeStepLowPassFilter(T lastOutput, T input, float Tf, float K, float dt) {
+	float a = dt / Tf;
+	return ((1.f - a) * lastOutput) + (K * a * input);
+}
+
+Vec3 UpdateWorkspace(const cVector3d position, const float deltaTick) {
 	// Define switch name constants
 	constexpr unsigned int centerSwitch = 0;
 	constexpr unsigned int leftSwitch = 1;
@@ -3120,7 +3126,7 @@ Vec3 UpdateWorkspace(const cVector3d position) {
 	g_chaiTool->updateFromDevice();
 
 	// Update the cursor position based on the tool
-	g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy());
+	g_hapticsUpdates.cursorPosition = TimeStepLowPassFilter(g_hapticsUpdates.cursorPosition, FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy()), 0.05f, 1.f, deltaTick);
 
 	// Update the camera
 	Vec3 toolPosition = FromChai(g_chaiTool->getLocalPos());
@@ -3180,7 +3186,7 @@ void updateHaptics(void)
 				g_hapticsUpdates.cursorVelocity = deviceVelocity;
 
 				// Move cursor based on device
-				Vec3 moveForce = UpdateWorkspace(position);
+				Vec3 moveForce = UpdateWorkspace(position, deltaTick);
 				netForce += moveForce;
 				
 				// Update cursor based on connected particles
@@ -3190,10 +3196,8 @@ void updateHaptics(void)
 
 					// Discrete-time low-pass filter
 					// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"
-					float Tf = 0.05f;
-					float a = deltaTick / (Tf);
-					float K = 0.25f;
-					Vec3 filteredForce = ((1.f - a) * g_hapticsUpdates.lastParticlesForce) + (K * a * particlesForce);
+					Vec3 filteredForce = TimeStepLowPassFilter(g_hapticsUpdates.lastParticlesForce, particlesForce, 0.05f, 0.25f, deltaTick);
+					//Vec3 filteredForce = ((1.f - a) * g_hapticsUpdates.lastParticlesForce) + (K * a * particlesForce);
 					g_hapticsUpdates.lastParticlesForce = filteredForce;
 					netForce += filteredForce;
 				}
