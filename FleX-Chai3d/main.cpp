@@ -1410,7 +1410,6 @@ Vec3 GetParticlesForce() {
 	if (cursorIndex < 0 || g_hapticsUpdates.contactIndices.empty() || g_hapticsUpdates.positions.empty()) return netForce;
 
 	const int maxContactsPerParticle = 6;
-	bool touchingFluid = false;
 
 	float x = 0.f;
 	for (int i = 0; i < int(g_hapticsUpdates.activeIndices.size()); ++i) {
@@ -1429,41 +1428,30 @@ Vec3 GetParticlesForce() {
 			if (contactVelocity.w == cursorIndex) {
 				int phase = g_hapticsUpdates.phases[particleIndex];
 				bool fluid = phase & eNvFlexPhaseFluid;
-				if (fluid) touchingFluid = true;
-				//float mult = fluid ? 0.2f : 1.f;
-
-				Vec3 particleVelocity = g_hapticsUpdates.velocities[particleIndex];
-				Vec3 particlePrevVelocity = g_hapticsUpdates.prevVelocities[particleIndex];
-
-				//Vec3 velocity = particleVelocity - g_hapticsUpdates.cursorVelocity;
-				//Vec3 prevVelocity = particlePrevVelocity - g_hapticsUpdates.prevCursorVelocity;
-
-				Vec3 velocity = particleVelocity;
-				Vec3 prevVelocity = particlePrevVelocity;
-
-
+				
+				Vec3 velocity = g_hapticsUpdates.velocities[particleIndex];
+				Vec3 prevVelocity = g_hapticsUpdates.prevVelocities[particleIndex];
 
 				Vec4 particle = g_hapticsUpdates.positions[particleIndex];
 				Vec3 position = particle;
+
 				//float mass = (1.f / particle.w) / 100;
-				//cout << mass << endl;
-				float mass = 0.00075 * 4.f * (fluid ? 1.f : (touchingFluid ? 1.f : 2.f));
+				float mass = 0.00075 * 4.f * (fluid ? 1.f : 2.f);
 
-				Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
-				Vec3 exertedForce = mass * acceleration;
+				Vec3 particleToCursor = g_hapticsUpdates.cursorPosition - position;
+				bool particleMovingTowardsCursor = Dot3(velocity, particleToCursor) > 0;
 
+				Vec3 exertedForce = Vec3(0.f);
+				if (fluid) {
+					// Derive acceleration from velocity
+					Vec3 acceleration = (velocity - prevVelocity) / g_realdt;
+					exertedForce = mass * acceleration;
+				} else {
+					// Semi-Hooke's law
+					exertedForce = -particleToCursor * 1.5f;
+				}
 
-				//mult += (speed / 10.f);
-
-				//Vec3 cursorToPosition = (position - cursorPosition);
-
-				//Vec3 contactPosition = cursorPosition + Normalize(cursorToPosition) * g_cursorRadius;
-
-				//Vec3 force = -(position - cursorPosition) * mult;
-				//x++;
-
-				bool particleMovingAwayFromCursor = Dot3(velocity, g_hapticsUpdates.cursorPosition - position) < 0;
-				if (!particleMovingAwayFromCursor) {
+				if (particleMovingTowardsCursor) {
 					exertedForce *= 0.5f;
 				}
 
