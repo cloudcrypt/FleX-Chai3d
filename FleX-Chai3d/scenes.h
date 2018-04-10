@@ -138,3 +138,4 @@ public:
 #include "scenes/triggervolume.h"
 #include "scenes/viscosity.h"
 #include "scenes/waterballoon.h"
+#include "scenes/streams.h"

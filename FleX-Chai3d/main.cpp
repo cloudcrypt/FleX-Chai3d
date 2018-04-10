@@ -311,6 +311,7 @@ struct SimBuffers
 
 SimBuffers* g_buffers;
 HapticsUpdate g_hapticsUpdates;
+int g_lastFirstFluidParticle = 0;
 
 void MapBuffers(SimBuffers* buffers)
 {
@@ -695,6 +696,7 @@ void Init(int scene, bool centerCamera = true)
 
 	g_chaiTool->setLocalPos(cVector3d(0.0, 0.0, 0.0));
 	g_hapticsUpdates.lastParticlesForce = Vec3(0.f);
+	g_lastFirstFluidParticle = 0;
 
 	// alloc buffers
 	g_buffers = AllocBuffers(g_flexLib);
@@ -1233,6 +1235,22 @@ void UpdateEmitters()
 			else
 				g_emitters[e].mLeftOver += numParticles;
 
+			
+
+			/*int count = 0;
+			for (int i = 0; i < g_buffers->activeIndices.size(); ++i) {
+				int activeIndex = g_buffers->activeIndices[i];
+				int phase = g_hapticsUpdates.phases[activeIndex];
+				if (!(phase & eNvFlexPhaseFluid)) continue;
+
+				g_buffers->activeIndices[i] = g_buffers->activeIndices.back();
+				g_buffers->activeIndices.resize(g_buffers->activeIndices.size() - 1);
+
+				activeCount--;
+				count++;
+				if (count == n) break;
+			}*/
+
 			// create a grid of particles (n particles thick)
 			for (int k = 0; k < n; ++k)
 			{
@@ -1248,16 +1266,26 @@ void UpdateEmitters()
 						Vec3 up = Normalize(Cross(emitterDir, emitterRight));
 						Vec3 offset = r*(emitterRight*x + up*y) + float(k)*emitterDir*r;
 
-						if (activeCount < g_buffers->positions.size())
-						{
-							g_buffers->positions[activeCount] = Vec4(emitterPos + offset, 1.0f);
-							g_buffers->velocities[activeCount] = emitterDir*g_emitters[e].mSpeed;
-							g_buffers->phases[activeCount] = phase;
 
-							g_buffers->activeIndices.push_back(activeCount);
-
-							activeCount++;
+						
+						int firstFluidParticle = g_lastFirstFluidParticle;
+						while (true) {
+							g_lastFirstFluidParticle = (g_lastFirstFluidParticle + 1) % g_buffers->activeIndices.size();
+							firstFluidParticle = g_buffers->activeIndices[g_lastFirstFluidParticle];
+							int phase = g_hapticsUpdates.phases[firstFluidParticle];
+							if (phase & eNvFlexPhaseFluid) break;
 						}
+
+						//if (activeCount < g_buffers->positions.size())
+						//{
+							g_buffers->positions[firstFluidParticle] = Vec4(emitterPos + offset, 1.0f);
+							g_buffers->velocities[firstFluidParticle] = emitterDir*g_emitters[e].mSpeed;
+							g_buffers->phases[firstFluidParticle] = phase;
+
+							//g_buffers->activeIndices.push_back(activeCount);
+
+							//activeCount++;
+						//}
 					}
 				}
 			}
@@ -3095,6 +3123,9 @@ Vec3 UpdateWorkspace(const cVector3d position, const float deltaTick) {
 		g_hapticsUpdates.cursorRotation = Normalize(g_hapticsUpdates.cursorRotation * QuatFromAxisAngle(Vec3(0.f, 1.f, 0.f), 0.005f));
 	} if (g_chaiTool->getUserSwitch(rightSwitch)) {
 		g_hapticsUpdates.cursorRotation = Normalize(g_hapticsUpdates.cursorRotation * QuatFromAxisAngle(Vec3(0.f, 1.f, 0.f), -0.005f));
+	} if (g_chaiTool->getUserSwitch(topSwitch)) {
+		Vec3 right = g_hapticsUpdates.cursorRotation * Vec3(0.f, 0.f, 1.f);
+		g_hapticsUpdates.cursorRotation = Normalize(g_hapticsUpdates.cursorRotation * QuatFromAxisAngle(right, 0.005f));
 	} if (g_chaiTool->getUserSwitch(centerSwitch)) {
 		g_hapticsUpdates.cursorRotation = Quat();
 	}
@@ -3409,6 +3440,9 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(new FrictionRamp("Friction Ramp"));
 	g_scenes.push_back(new BunnyBath("Duck Bath Dam", true, true));
 	g_scenes.push_back(new BunnyBath("Bunny Bath Dam", true));
+	g_scenes.push_back(new Streams("Streams", true, true));
+	g_scenes.push_back(new RockPool("Rock Pool"));
+
 
 	// opening scene
 	g_scenes.push_back(new PotPourri("Pot Pourri"));
@@ -3620,7 +3654,6 @@ int main(int argc, char* argv[])
 	g_scenes.push_back(new DamBreak("DamBreak  5cm", 0.05f));
 	g_scenes.push_back(new DamBreak("DamBreak 10cm", 0.1f));
 	g_scenes.push_back(new DamBreak("DamBreak 15cm", 0.15f));
-	g_scenes.push_back(new RockPool("Rock Pool"));
 	g_scenes.push_back(new RayleighTaylor2D("Rayleigh Taylor 2D"));
 
 	// misc feature scenes

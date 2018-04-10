@@ -168,6 +168,9 @@
     <ClInclude Include="..\..\scenes\waterballoon.h">
       <Filter>demo\scenes</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\scenes\streams.h">
+      <Filter>demo\scenes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\imgui.cpp">

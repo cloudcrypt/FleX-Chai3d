@@ -74,7 +74,7 @@
   </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <OutDir>./../../../bin/win64/</OutDir>
-    <IntDir>./build/win64/D3D/demo/release\</IntDir>
+    <IntDir>./build/win64/D3D/demo/release/</IntDir>
     <TargetExt>.exe</TargetExt>
     <TargetName>NvFlexDemoReleaseD3D_x64</TargetName>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
@@ -226,6 +226,7 @@
     </ClInclude>
     <ClInclude Include="..\..\scenes\waterballoon.h">
     </ClInclude>
+    <ClInclude Include="..\..\scenes\streams.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\imgui.cpp">
