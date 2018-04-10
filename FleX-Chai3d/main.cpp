@@ -579,6 +579,8 @@ int g_levelScroll;			// offset for level selection scroll area
 bool g_resetScene = false;  //if the user clicks the reset button or presses the reset key this is set to true;
 
 int g_frame = 0;
+float g_sceneTime;
+float g_sceneBeginTime;
 int g_numSolidParticles = 0;
 
 int g_mouseParticle = -1;
@@ -759,6 +761,8 @@ void Init(int scene, bool centerCamera = true)
 	delete g_mesh; g_mesh = NULL;
 
 	g_frame = 0;
+	g_sceneTime = 0.f;
+	g_sceneBeginTime = GetSeconds();
 	g_pause = false;
 
 	g_dt = 1.0f / 60.0f;
@@ -2169,12 +2173,27 @@ int DoUI()
 	return newScene;
 }
 
+float g_averagedt = 0.f;
+int g_frameCount = 0;
+
 void UpdateFrame()
 {
 	static double lastTime;
 
 	// real elapsed frame time
 	double frameBeginTime = GetSeconds();
+
+	/*g_sceneTime = frameBeginTime - g_sceneBeginTime;
+	if (g_sceneTime < 2.f) {
+		g_averagedt += g_realdt;
+		g_frameCount++;
+	} else {
+		g_dt = g_averagedt / float(g_frameCount);
+		cout << g_dt * 1000.f << endl;
+		g_averagedt = 0.f;
+		g_frameCount = 0;
+		g_sceneBeginTime = frameBeginTime;
+	}*/
 
 	g_realdt = float(frameBeginTime - lastTime);
 	lastTime = frameBeginTime;
