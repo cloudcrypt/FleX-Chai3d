@@ -130,7 +130,7 @@ cWorld* g_chaiWorld;
 cToolCursor* g_chaiTool;
 float g_chaiScaleFactor = 100.f;
 
-mutex g_shapeMutex;
+mutex g_particlesMutex;
 mutex g_meshMutex;
 
 // flag to indicate if the haptic simulation currently running
@@ -209,10 +209,12 @@ Colour g_colors[] =
 };
 
 struct HapticsUpdate {
-	HapticsUpdate() : updated(false) {}
+	HapticsUpdate() : updated(false), cursorShape(true) {}
 
 	bool updated;
 	Vec3 cursorPosition;
+	Quat cursorRotation;
+	bool cursorShape;
 
 	Vec3 prevCursorVelocity;
 	Vec3 cursorVelocity;
@@ -1374,7 +1376,7 @@ void SaveContacts() {
 	contactIndices.map();
 	contactCounts.map();
 
-	g_shapeMutex.lock();
+	g_particlesMutex.lock();
 	g_hapticsUpdates.contactPlanes.resize(contactPlanes.size());
 	contactPlanes.copyto(&g_hapticsUpdates.contactPlanes[0], contactPlanes.size());
 
@@ -1386,13 +1388,16 @@ void SaveContacts() {
 
 	g_hapticsUpdates.contactCounts.resize(contactCounts.size());
 	contactCounts.copyto(&g_hapticsUpdates.contactCounts[0], contactCounts.size());
-	g_shapeMutex.unlock();
+	g_particlesMutex.unlock();
 
 	if (g_hapticsUpdates.updated) {
 		g_hapticsUpdates.updated = false;
 
 		g_buffers->shapePrevPositions[cursorIndex] = g_buffers->shapePositions[cursorIndex];
 		g_buffers->shapePositions[cursorIndex] = Vec4(g_hapticsUpdates.cursorPosition, 0.f);
+
+		g_buffers->shapePrevRotations[cursorIndex] = g_buffers->shapeRotations[cursorIndex];
+		g_buffers->shapeRotations[cursorIndex] = g_hapticsUpdates.cursorRotation;
 
 		g_shapesChanged = true;
 	}
@@ -2647,6 +2652,7 @@ bool InputKeyboardDown(unsigned char key, int x, int y)
 	}
 	case 'r':
 	{
+		g_hapticsUpdates.cursorShape = !g_hapticsUpdates.cursorShape;
 		g_resetScene = true;
 		break;
 	}
@@ -2949,6 +2955,7 @@ void SDLInit(const char* title)
 		printf("Unable to initialize SDL");
 
 	unsigned int flags = SDL_WINDOW_RESIZABLE;
+
 #if !FLEX_DX
 	if (g_graphics == 0)
 	{
@@ -3065,6 +3072,20 @@ Vec3 ProjectPointOnPlane(const Vec3& a_point, const Vec3& a_planePoint, const Ve
 }
 
 Vec3 UpdateWorkspace(const cVector3d position) {
+	// Define switch name constants
+	constexpr unsigned int centerSwitch = 0;
+	constexpr unsigned int leftSwitch = 1;
+	constexpr unsigned int topSwitch = 2;
+	constexpr unsigned int rightSwitch = 3;
+
+	if (g_chaiTool->getUserSwitch(leftSwitch)) {
+		g_hapticsUpdates.cursorRotation = Normalize(g_hapticsUpdates.cursorRotation * QuatFromAxisAngle(Vec3(0.f, 1.f, 0.f), 0.005f));
+	} if (g_chaiTool->getUserSwitch(rightSwitch)) {
+		g_hapticsUpdates.cursorRotation = Normalize(g_hapticsUpdates.cursorRotation * QuatFromAxisAngle(Vec3(0.f, 1.f, 0.f), -0.005f));
+	} if (g_chaiTool->getUserSwitch(centerSwitch)) {
+		g_hapticsUpdates.cursorRotation = Quat();
+	}
+
 	// Define the movement sphere parameters
 	constexpr double radius = 0.02;
 	constexpr double maxDist = 0.045 - radius;
@@ -3144,10 +3165,6 @@ void updateHaptics(void)
 		cMatrix3d rotation;
 		g_hapticDevice->getRotation(rotation);
 
-		// read user-switch status (button 0)
-		bool button = false;
-		g_hapticDevice->getUserSwitch(0, button);
-
 		/////////////////////////////////////////////////////////////////////
 		// UPDATE 3D CURSOR MODEL
 		/////////////////////////////////////////////////////////////////////
@@ -3167,9 +3184,9 @@ void updateHaptics(void)
 				netForce += moveForce;
 				
 				// Update cursor based on connected particles
-				if (g_shapeMutex.try_lock()) {
+				if (g_particlesMutex.try_lock()) {
 					Vec3 particlesForce = GetParticlesForce();
-					g_shapeMutex.unlock();
+					g_particlesMutex.unlock();
 
 					// Discrete-time low-pass filter
 					// TODO: Try a "Finite impulse response (FIR) 10th order Bartlett-Hanning window filter"

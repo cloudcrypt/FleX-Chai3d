@@ -44,17 +44,23 @@ public:
 	}
 
 	void CreateCursor() {
-		AddSphere(g_cursorRadius, Vec3(0.f, 0.f, 0.f), Quat(), true, false);
+		if (g_hapticsUpdates.cursorShape) {
+			AddSphere(g_cursorRadius, Vec3(0.f), Quat(), true, false);
+		} else {
+			AddBox(Vec3(0.01, g_cursorRadius, g_cursorRadius), Vec3(0.f), Quat(), true, eNvFlexPhaseShapeChannelMask, false);
+		}
+
 		/*Mesh* bowl = ImportMesh(GetFilePathByPlatform("../../data/bowl.obj").c_str());
 		bowl->Normalize(2.0f);
 		bowl->CalculateNormals();
 		bowl->Transform(TranslationMatrix(Point3(-1.0f, 0.0f, -1.0f)));
-		bowl->Transform(ScaleMatrix(Vec3(0.25)));
+		bowl->Transform(ScaleMatrix(Vec3(0.5)));
 
 		NvFlexTriangleMeshId mesh = CreateTriangleMesh(bowl);
 		AddTriangleMesh(mesh, Vec3(), Quat(), 1.0f);
 
 		delete bowl;*/
+		
 		mCursorIndex = g_buffers->shapePositions.size() - 1;
 	}
 	
