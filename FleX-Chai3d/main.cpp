@@ -3127,6 +3127,7 @@ Vec3 UpdateWorkspace(const cVector3d position, const float deltaTick) {
 
 	// Update the cursor position based on the tool
 	g_hapticsUpdates.cursorPosition = TimeStepLowPassFilter(g_hapticsUpdates.cursorPosition, FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy()), 0.05f, 1.f, deltaTick);
+	//g_hapticsUpdates.cursorPosition = FromChai(g_chaiTool->m_hapticPoint->getGlobalPosProxy());
 
 	// Update the camera
 	Vec3 toolPosition = FromChai(g_chaiTool->getLocalPos());
